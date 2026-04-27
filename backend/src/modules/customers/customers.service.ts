@@ -1,60 +1,70 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { requireText } from '../../common/validation/request-validation';
-import { CreateCustomerDto } from './dto/create-customer.dto';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { CustomerAccount } from './customer-account.entity';
+import { PasswordService } from '../../common/auth/password.service';
 
 @Injectable()
 export class CustomersService {
-  private readonly customers = new Map<string, CustomerAccount>();
+  constructor(
+    private readonly em: EntityManager,
+    @InjectRepository(CustomerAccount)
+    private readonly customerRepo: EntityRepository<CustomerAccount>,
+    private readonly passwordService: PasswordService,
+  ) {}
 
-  createCustomer(dto: CreateCustomerDto): CustomerAccount {
-    const email = this.normalizeEmail(dto.email);
-    const name = requireText(dto.name, 'name');
-
-    if (this.findByEmail(email)) {
-      throw new ConflictException('Customer email already exists');
+  async createCustomer(
+    email: string,
+    name: string,
+    password: string,
+  ): Promise<CustomerAccount> {
+    const existing = await this.findByEmail(email);
+    if (existing) {
+      throw new ConflictException('Email already registered');
     }
 
-    const now = new Date();
-    const customer: CustomerAccount = {
-      id: randomUUID(),
-      email,
-      name,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.customers.set(customer.id, customer);
+    const passwordHash = await this.passwordService.hash(password);
+    const customer = new CustomerAccount(email, name, passwordHash);
+    this.em.persist(customer);
+    await this.em.flush();
     return customer;
   }
 
-  listCustomers(): CustomerAccount[] {
-    return [...this.customers.values()];
+  async createCustomerWithPasswordHash(
+    email: string,
+    name: string,
+    passwordHash: string,
+  ): Promise<CustomerAccount> {
+    const customer = new CustomerAccount(email, name, passwordHash);
+    this.em.persist(customer);
+    await this.em.flush();
+    return customer;
   }
 
-  getCustomer(customerId: string): CustomerAccount {
-    const customer = this.customers.get(customerId);
+  async findByEmail(email: string): Promise<CustomerAccount | null> {
+    return this.customerRepo.findOne({ email: email.toLowerCase().trim() });
+  }
 
+  async findById(customerId: string): Promise<CustomerAccount | null> {
+    return this.customerRepo.findOne({ id: customerId });
+  }
+
+  async findByIdPublic(customerId: string) {
+    const customer = await this.customerRepo.findOne({ id: customerId });
     if (!customer) {
       throw new NotFoundException('Customer not found');
     }
-
-    return customer;
+    return {
+      id: customer.id,
+      email: customer.email,
+      name: customer.name,
+      status: customer.status,
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
+    };
   }
 
-  findByEmail(email: string): CustomerAccount | undefined {
-    return [...this.customers.values()].find(
-      (customer) => customer.email === this.normalizeEmail(email),
-    );
-  }
-
-  private normalizeEmail(email: string): string {
-    return requireText(email, 'email').toLowerCase();
+  async listCustomers(): Promise<CustomerAccount[]> {
+    return this.customerRepo.findAll();
   }
 }

@@ -1,10 +1,43 @@
+import { Entity, PrimaryKey, Property, Enum, ManyToMany } from '@mikro-orm/decorators/legacy';
+import { Collection } from '@mikro-orm/core';
+import { v4 as uuidv4 } from 'uuid';
+import { Role } from '../roles/role.entity';
+
 export type CustomerStatus = 'active' | 'disabled';
 
-export interface CustomerAccount {
-  id: string;
-  email: string;
-  name: string;
-  status: CustomerStatus;
-  createdAt: Date;
-  updatedAt: Date;
+@Entity()
+export class CustomerAccount {
+  @PrimaryKey({ type: 'string' })
+  id!: string;
+
+  @Property({ type: 'string', unique: true })
+  email!: string;
+
+  @Property({ type: 'string' })
+  name!: string;
+
+  @Property({ type: 'string' })
+  passwordHash!: string;
+
+  @Enum({ items: () => ['active', 'disabled'] })
+  status!: CustomerStatus;
+
+  @ManyToMany(() => Role, (role) => role.customers)
+  roles = new Collection<Role>(this);
+
+  @Property({ type: 'Date' })
+  createdAt!: Date;
+
+  @Property({ type: 'Date' })
+  updatedAt!: Date;
+
+  constructor(email: string, name: string, passwordHash: string) {
+    this.id = uuidv4();
+    this.email = email.toLowerCase().trim();
+    this.name = name.trim();
+    this.passwordHash = passwordHash;
+    this.status = 'active';
+    this.createdAt = new Date();
+    this.updatedAt = new Date();
+  }
 }

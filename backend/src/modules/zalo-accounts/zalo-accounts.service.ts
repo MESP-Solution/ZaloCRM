@@ -1,54 +1,44 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { requireText } from '../../common/validation/request-validation';
-import { CustomersService } from '../customers/customers.service';
-import { CreateZaloAccountDto } from './dto/create-zalo-account.dto';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { ZaloAccount } from './zalo-account.entity';
+import { CustomerAccount } from '../customers/customer-account.entity';
 
 @Injectable()
 export class ZaloAccountsService {
-  private readonly accounts = new Map<string, ZaloAccount>();
+  constructor(
+    private readonly em: EntityManager,
+    @InjectRepository(ZaloAccount)
+    private readonly accountRepo: EntityRepository<ZaloAccount>,
+  ) {}
 
-  constructor(private readonly customersService: CustomersService) {}
-
-  createAccount(dto: CreateZaloAccountDto): ZaloAccount {
-    const customerId = requireText(dto.customerId, 'customerId');
-    const displayName = requireText(dto.displayName, 'displayName');
-    const providerAccountId = dto.providerAccountId?.trim();
-    this.customersService.getCustomer(customerId);
-
-    const now = new Date();
-    const account: ZaloAccount = {
-      id: randomUUID(),
-      customerId,
-      displayName,
-      providerAccountId,
-      status: providerAccountId ? 'active' : 'pending_login',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.accounts.set(account.id, account);
+  async createAccount(
+    customer: CustomerAccount,
+    displayName: string,
+    providerAccountId?: string,
+  ): Promise<ZaloAccount> {
+    const account = new ZaloAccount(customer, displayName);
+    if (providerAccountId) {
+      account.providerAccountId = providerAccountId;
+      account.status = 'active';
+    }
+    this.em.persist(account);
+    await this.em.flush();
     return account;
   }
 
-  listAccounts(customerId?: string): ZaloAccount[] {
-    const accounts = [...this.accounts.values()];
-
-    if (!customerId) {
-      return accounts;
-    }
-
-    return accounts.filter((account) => account.customerId === customerId);
+  async findById(accountId: string): Promise<ZaloAccount | null> {
+    return this.accountRepo.findOne({ id: accountId });
   }
 
-  getAccount(accountId: string): ZaloAccount {
-    const account = this.accounts.get(accountId);
+  async findByCustomerId(customerId: string): Promise<ZaloAccount[]> {
+    return this.accountRepo.find({ customer: { id: customerId } });
+  }
 
-    if (!account) {
-      throw new NotFoundException('Zalo account not found');
+  async listAccounts(customerId?: string): Promise<ZaloAccount[]> {
+    if (customerId) {
+      return this.accountRepo.find({ customer: { id: customerId } });
     }
-
-    return account;
+    return this.accountRepo.findAll();
   }
 }

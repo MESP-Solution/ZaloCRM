@@ -39,10 +39,12 @@ Default prefix: `/api`
 Available scaffold endpoints:
 
 - `GET /api`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
 - `POST /api/customers`
 - `GET /api/customers`
 - `GET /api/customers/:customerId`
-- `POST /api/auth/login`
 - `POST /api/zalo-accounts`
 - `GET /api/zalo-accounts`
 - `GET /api/zalo-accounts/:accountId`
@@ -53,10 +55,33 @@ Available scaffold endpoints:
 
 ## Environment
 
+Create `.env` from `.env.example`, then replace `[YOUR-PASSWORD]` with the Supabase database password.
+
 ```bash
 PORT=3000
 API_PREFIX=api
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.dgflhdyhgoacafexhiej.supabase.co:5432/postgres
+DATABASE_SSL=true
+JWT_SECRET=[GENERATE-A-LONG-RANDOM-SECRET]
+JWT_EXPIRES_IN_SECONDS=86400
+AUTH_COOKIE_NAME=access_token
+AUTH_COOKIE_SECURE=false
+AUTH_COOKIE_SAME_SITE=strict
+ADMIN_ID=bootstrap-admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_NAME=System Admin
+ADMIN_PASSWORD_HASH=[BCRYPT-HASH]
+```
+
+Environment variables are required. The app does not provide runtime fallbacks for missing `.env` values.
+
+Admin login is bootstrapped from env until an admin table exists. Store a bcrypt hash in `ADMIN_PASSWORD_HASH`, not a plaintext password.
+
+Generate a local hash:
+
+```bash
+node -e "const bcrypt=require('bcrypt'); bcrypt.hash(process.argv[1], 12).then(console.log)" "your-password"
 ```
 
 ## Project Setup
@@ -77,8 +102,8 @@ pnpm run start:prod
 
 ```bash
 pnpm run build
-pnpm run test
-pnpm run test:e2e
+pnpm run lint
+pnpm exec mikro-orm debug
 ```
 
 ## Next Decisions

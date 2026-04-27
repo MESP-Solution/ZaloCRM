@@ -1,112 +1,111 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import {
-  requireText,
-  requireTextList,
-} from '../../common/validation/request-validation';
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/core';
+import { MessagingCampaign } from './messaging-campaign.entity';
+import { MessagingCampaignStatus } from './messaging-campaign.entity';
 import { CustomersService } from '../customers/customers.service';
 import { ZaloAccountsService } from '../zalo-accounts/zalo-accounts.service';
-import { ZALO_PROVIDER } from '../zalo-provider/zalo-provider.port';
-import type { ZaloProviderPort } from '../zalo-provider/zalo-provider.port';
-import { CreateMessagingCampaignDto } from './dto/create-messaging-campaign.dto';
-import { MessagingCampaign } from './messaging-campaign.entity';
 
 @Injectable()
 export class MessagingCampaignsService {
-  private readonly campaigns = new Map<string, MessagingCampaign>();
-
   constructor(
+    private readonly em: EntityManager,
     private readonly customersService: CustomersService,
     private readonly zaloAccountsService: ZaloAccountsService,
-    @Inject(ZALO_PROVIDER) private readonly zaloProvider: ZaloProviderPort,
+    @InjectRepository(MessagingCampaign)
+    private readonly campaignRepo: EntityRepository<MessagingCampaign>,
   ) {}
 
-  createCampaign(dto: CreateMessagingCampaignDto): MessagingCampaign {
-    const customerId = requireText(dto.customerId, 'customerId');
-    const zaloAccountId = requireText(dto.zaloAccountId, 'zaloAccountId');
-    const recipientIds = requireTextList(dto.recipientIds, 'recipientIds');
-    this.customersService.getCustomer(customerId);
-    this.zaloAccountsService.getAccount(zaloAccountId);
+  async createCampaign(
+    customerId: string,
+    name: string,
+    messageText: string,
+    zaloAccountId: string,
+    scheduleAt?: Date,
+  ): Promise<MessagingCampaign> {
+    const customer = await this.customersService.findById(customerId);
+    const zaloAccount = await this.zaloAccountsService.findById(zaloAccountId);
 
-    const now = new Date();
-    const campaign: MessagingCampaign = {
-      id: randomUUID(),
-      customerId,
-      zaloAccountId,
-      name: requireText(dto.name, 'name'),
-      messageText: requireText(dto.messageText, 'messageText'),
-      status: 'draft',
-      jobs: recipientIds.map((recipientId) => ({
-        id: randomUUID(),
-        recipientId,
-        status: 'queued',
-      })),
-      createdAt: now,
-      updatedAt: now,
-    };
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
 
-    this.campaigns.set(campaign.id, campaign);
+    if (!zaloAccount) {
+      throw new NotFoundException('Zalo account not found');
+    }
+
+    if (zaloAccount.customer.id !== customer.id) {
+      throw new BadRequestException('Zalo account does not belong to customer');
+    }
+
+    const campaign = new MessagingCampaign(
+      customer,
+      name,
+      messageText,
+      zaloAccount,
+    );
+    if (scheduleAt) {
+      campaign.scheduleAt = scheduleAt;
+    }
+    this.em.persist(campaign);
+    await this.em.flush();
     return campaign;
   }
 
-  listCampaigns(customerId?: string): MessagingCampaign[] {
-    const campaigns = [...this.campaigns.values()];
-
-    if (!customerId) {
-      return campaigns;
-    }
-
-    return campaigns.filter((campaign) => campaign.customerId === customerId);
+  async findById(campaignId: string): Promise<MessagingCampaign | null> {
+    return this.campaignRepo.findOne({ id: campaignId });
   }
 
-  getCampaign(campaignId: string): MessagingCampaign {
-    const campaign = this.campaigns.get(campaignId);
+  async findByCustomerId(customerId: string): Promise<MessagingCampaign[]> {
+    return this.campaignRepo.find({ customer: { id: customerId } });
+  }
 
+  async listCampaigns(customerId?: string): Promise<MessagingCampaign[]> {
+    if (customerId) {
+      return this.campaignRepo.find({ customer: { id: customerId } });
+    }
+    return this.campaignRepo.findAll();
+  }
+
+  async updateStatus(
+    campaignId: string,
+    status: MessagingCampaignStatus,
+  ): Promise<MessagingCampaign | null> {
+    const campaign = await this.campaignRepo.findOne({ id: campaignId });
     if (!campaign) {
-      throw new NotFoundException('Messaging campaign not found');
+      return null;
     }
-
+    campaign.status = status;
+    await this.em.flush();
     return campaign;
   }
 
-  async dispatchCampaign(campaignId: string): Promise<MessagingCampaign> {
-    const campaign = this.getCampaign(campaignId);
-    campaign.status = 'sending';
-    campaign.updatedAt = new Date();
-
-    try {
-      for (const job of campaign.jobs) {
-        const result = await this.zaloProvider.sendMessage({
-          zaloAccountId: campaign.zaloAccountId,
-          recipientId: job.recipientId,
-          text: campaign.messageText,
-          campaignId: campaign.id,
-        });
-
-        job.status = 'sent';
-        job.providerMessageId = result.providerMessageId;
-      }
-    } catch (error) {
-      campaign.status = 'failed';
-      campaign.updatedAt = new Date();
-      this.markQueuedJobsFailed(campaign, error);
-      throw error;
+  async updateResults(
+    campaignId: string,
+    results: {
+      sent?: number;
+      delivered?: number;
+      failed?: number;
+    },
+  ): Promise<MessagingCampaign | null> {
+    const campaign = await this.campaignRepo.findOne({ id: campaignId });
+    if (!campaign) {
+      return null;
     }
-
-    campaign.status = 'completed';
-    campaign.updatedAt = new Date();
+    if (results.sent !== undefined) {
+      campaign.sentCount = results.sent;
+    }
+    if (results.delivered !== undefined) {
+      campaign.deliveredCount = results.delivered;
+    }
+    if (results.failed !== undefined) {
+      campaign.failedCount = results.failed;
+    }
+    await this.em.flush();
     return campaign;
-  }
-
-  private markQueuedJobsFailed(campaign: MessagingCampaign, error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown dispatch error';
-
-    for (const job of campaign.jobs) {
-      if (job.status === 'queued') {
-        job.status = 'failed';
-        job.errorMessage = errorMessage;
-      }
-    }
   }
 }

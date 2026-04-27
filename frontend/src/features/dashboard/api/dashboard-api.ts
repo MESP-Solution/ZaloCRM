@@ -1,4 +1,4 @@
-import { apiClient } from "~lib/api";
+import { apiClient } from '../../../lib/api/api-client';
 import type { DashboardSummary } from "../types";
 
 export const dashboardApi = {
