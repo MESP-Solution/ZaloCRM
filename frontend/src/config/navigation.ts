@@ -9,7 +9,7 @@ export const mainNavigation: NavigationItem[] = [
   {
     label: "Zalo",
     children: [
-      { label: "Nhắn tin", href: "/messages" },
+      { label: "Nhắn tin theo SĐT", href: "/message-with-phone" },
       { label: "Tài khoản Zalo", href: "/accounts" },
     ],
   },

@@ -29,6 +29,20 @@ export const zaloAccountsApi = {
     });
   },
 
+  reconnect(accountId: string) {
+    return apiClient<{ success: boolean; message: string }>(
+      `/zalo-connections/${accountId}/reconnect`,
+      { method: 'POST' },
+    );
+  },
+
+  disconnect(accountId: string) {
+    return apiClient<{ success: boolean; message: string }>(
+      `/zalo-connections/${accountId}/disconnect`,
+      { method: 'POST' },
+    );
+  },
+
   loginWithCookie(data: LoginWithCookieRequest) {
     return apiClient<{ success: boolean; accountId: string; message: string }>(
       '/zalo-connections/login-cookie',

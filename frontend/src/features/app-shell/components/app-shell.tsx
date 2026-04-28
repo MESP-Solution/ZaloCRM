@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { AppLogo } from '~components/app-logo';
 import { mainNavigation } from '~config/navigation';
 import { useAuth } from '~features/auth/hooks/use-auth';
@@ -13,6 +14,42 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const { user, loading, logout, fetchCurrentUser } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
+
+  function isActive(href?: string) {
+    if (!href) return false;
+    return pathname === href || pathname.startsWith(href + '/');
+  }
+
+  function getPageTitle(path: string): string {
+    const titles: Record<string, string> = {
+      '/dashboard': 'Trang chủ',
+      '/accounts': 'Tài khoản Zalo',
+      '/message-with-phone': 'Nhắn tin theo số điện thoại',
+      '/contacts': 'Liên hệ',
+      '/companies': 'Công ty',
+      '/deals': 'Giao dịch',
+    };
+    for (const [route, title] of Object.entries(titles)) {
+      if (path === route || path.startsWith(route + '/')) return title;
+    }
+    return 'ZaloCRM';
+  }
+
+  function getPageDescription(path: string): string {
+    const descriptions: Record<string, string> = {
+      '/dashboard': 'Tổng quan hoạt động',
+      '/accounts': 'Quản lý kết nối tài khoản Zalo',
+      '/message-with-phone': 'Tạo chiến dịch gửi tin nhắn Zalo đến danh sách SĐT',
+      '/contacts': 'Quản lý danh sách liên hệ',
+      '/companies': 'Quản lý công ty',
+      '/deals': 'Quản lý giao dịch',
+    };
+    for (const [route, desc] of Object.entries(descriptions)) {
+      if (path === route || path.startsWith(route + '/')) return desc;
+    }
+    return '';
+  }
 
   useEffect(() => {
     fetchCurrentUser();
@@ -57,7 +94,11 @@ export function AppShell({ children }: AppShellProps) {
                   <div className="mt-1 space-y-1 pl-3">
                     {item.children.map((child) => (
                       <Link
-                        className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-950"
+                        className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+                          isActive(child.href)
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-950'
+                        }`}
                         href={child.href ?? '#'}
                         key={child.href ?? child.label}
                       >
@@ -68,7 +109,11 @@ export function AppShell({ children }: AppShellProps) {
                 </details>
               ) : (
                 <Link
-                  className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-950"
+                  className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    isActive(item.href)
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-950'
+                  }`}
                   href={item.href ?? '#'}
                   key={item.href ?? item.label}
                 >
@@ -83,7 +128,11 @@ export function AppShell({ children }: AppShellProps) {
           <nav className="mt-10 space-y-1">
             {mainNavigation.map((item) => (
               <Link
-                className="flex items-center justify-center rounded-lg p-2 text-gray-600 transition hover:bg-gray-100 hover:text-gray-950"
+                className={`flex items-center justify-center rounded-lg p-2 transition ${
+                  isActive(item.href)
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-950'
+                }`}
                 href={item.href ?? '#'}
                 key={item.href ?? item.label}
                 title={item.label}
@@ -104,8 +153,8 @@ export function AppShell({ children }: AppShellProps) {
               <AppLogo />
             </div>
             <div className="hidden lg:block">
-              <p className="text-sm text-gray-500">CRM</p>
-              <p className="font-semibold text-gray-950">Customer operations</p>
+              <p className="font-semibold text-gray-950">{getPageTitle(pathname)}</p>
+              <p className="text-sm text-gray-500">{getPageDescription(pathname)}</p>
             </div>
             <div className="flex items-center gap-3">
               {loading && !user ? (
@@ -141,7 +190,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        <main className="px-5 py-8 md:px-8">{children}</main>
+        <main className="px-5 py-4 md:px-8">{children}</main>
       </div>
     </div>
   );
