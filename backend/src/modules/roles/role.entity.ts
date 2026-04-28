@@ -14,7 +14,7 @@ export class Role {
   @Property({ type: 'string' })
   description!: string;
 
-  @ManyToMany(() => CustomerAccount, (customer) => customer.roles, { mappedBy: 'roles' })
+  @ManyToMany({ entity: () => CustomerAccount, mappedBy: 'roles' })
   customers = new Collection<CustomerAccount>(this);
 
   constructor(name: string, description: string) {

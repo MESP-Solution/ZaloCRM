@@ -1,12 +1,9 @@
 import { apiClient } from '../../../lib/api/api-client';
+import type { AuthUser, LoginResponse } from '../types';
 
 export const authApi = {
   login(email: string, password: string) {
-    return apiClient<{
-      accessToken: string;
-      customerId: string;
-      expiresAt: string;
-    }>('/auth/login', {
+    return apiClient<LoginResponse>('/auth/login', {
       method: 'POST',
       body: { email, password },
       credentials: 'include',
@@ -14,11 +11,7 @@ export const authApi = {
   },
 
   register(email: string, password: string, name: string) {
-    return apiClient<{
-      accessToken: string;
-      customerId: string;
-      expiresAt: string;
-    }>('/auth/register', {
+    return apiClient<LoginResponse>('/auth/register', {
       method: 'POST',
       body: { email, password, name },
       credentials: 'include',
@@ -28,6 +21,12 @@ export const authApi = {
   logout() {
     return apiClient<{ message: string }>('/auth/logout', {
       method: 'POST',
+      credentials: 'include',
+    });
+  },
+
+  me() {
+    return apiClient<{ user: AuthUser }>('/auth/me', {
       credentials: 'include',
     });
   },

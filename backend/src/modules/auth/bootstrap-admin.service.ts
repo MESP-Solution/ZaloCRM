@@ -12,7 +12,7 @@ export class BootstrapAdminService {
       id: requireEnv('ADMIN_ID'),
       email: this.normalizeEmail(requireEnv('ADMIN_EMAIL')),
       name: requireEnv('ADMIN_NAME'),
-      role: 'admin',
+      roles: ['admin'],
       status: 'active',
     };
   }

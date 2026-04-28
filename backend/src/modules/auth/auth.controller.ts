@@ -16,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
+import { RolesGuard, Roles } from '../../common/auth/roles.guard';
 import { AuthService } from './auth.service';
 import { AuthCookieService } from './auth-cookie.service';
 import { LoginRequestDto } from './dto/login-request.dto';
@@ -29,23 +30,17 @@ export class AuthController {
     private readonly authCookieService: AuthCookieService,
   ) {}
 
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @Post('register')
-  @ApiOperation({ summary: 'Register a new customer account' })
-  @ApiResponse({ status: 201, description: 'Account created and cookie set' })
+  @ApiOperation({ summary: 'Register a new customer account (admin only)' })
+  @ApiCookieAuth('access_token')
+  @ApiResponse({ status: 201, description: 'Account created' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 409, description: 'Email already registered' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async register(
-    @Body() dto: RegisterRequestDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const session = await this.authService.register(dto);
-    this.authCookieService.setSessionCookie(res, session.accessToken);
-
-    return {
-      expiresAt: session.expiresAt,
-      user: session.user,
-    };
+  async register(@Body() dto: RegisterRequestDto) {
+    return this.authService.register(dto);
   }
 
   @UseGuards(ThrottlerGuard)

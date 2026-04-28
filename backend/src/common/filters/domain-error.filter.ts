@@ -27,10 +27,17 @@ export class HttpErrorFilter implements ExceptionFilter {
     const statusCode = exception.getStatus();
     const errorResponse = exception.getResponse();
 
+    if (typeof errorResponse === 'object' && errorResponse !== null) {
+      response.status(statusCode).json({
+        error: exception.name,
+        ...errorResponse,
+      });
+      return;
+    }
+
     response.status(statusCode).json({
       error: exception.name,
-      message:
-        typeof errorResponse === 'string' ? errorResponse : exception.message,
+      message: typeof errorResponse === 'string' ? errorResponse : exception.message,
       statusCode,
     });
   }

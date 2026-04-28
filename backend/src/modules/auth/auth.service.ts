@@ -51,14 +51,13 @@ export class AuthService {
             id: customer.id,
             email: customer.email,
             name: customer.name,
-            role: 'customer',
+            roles: customer.roles.getItems().map((r) => r.name),
             status: customer.status,
           };
         }
       }
     }
 
-    // Always verify dummy hash to maintain constant time (prevents timing attack)
     await this.passwordService.verify(dto.password, DUMMY_PASSWORD_HASH);
 
     if (!user) {
@@ -68,7 +67,7 @@ export class AuthService {
     return this.jwtAuthService.signSession(user);
   }
 
-  async register(dto: RegisterRequestDto): Promise<AuthSession> {
+  async register(dto: RegisterRequestDto): Promise<{ user: AuthenticatedPrincipal }> {
     const email = dto.email.trim().toLowerCase();
     const name = dto.name.trim();
 
@@ -94,13 +93,15 @@ export class AuthService {
       passwordHash,
     );
 
-    return this.jwtAuthService.signSession({
-      id: customer.id,
-      email: customer.email,
-      name: customer.name,
-      role: 'customer',
-      status: customer.status,
-    });
+    return {
+      user: {
+        id: customer.id,
+        email: customer.email,
+        name: customer.name,
+        roles: customer.roles.getItems().map((r) => r.name),
+        status: customer.status,
+      },
+    };
   }
 
   private validatePasswordStrength(password: string): void {

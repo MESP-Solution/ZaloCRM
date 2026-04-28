@@ -5,6 +5,10 @@ import { ApiError } from './api-error';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export const authConfig = {
+  cookieName: process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME ?? 'access_token',
+};
+
 interface ApiRequestOptions extends Omit<RequestInit, 'body' | 'method'> {
   accessToken?: string;
   body?: unknown;
@@ -18,8 +22,9 @@ function getCookie(name: string): string | undefined {
 }
 
 function createApiUrl(path: string): string {
+  const base = appConfig.apiBaseUrl.replace(/\/+$/, '');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return new URL(normalizedPath, appConfig.apiBaseUrl).toString();
+  return `${base}${normalizedPath}`;
 }
 
 function createHeaders(options: ApiRequestOptions): Headers {
@@ -29,7 +34,7 @@ function createHeaders(options: ApiRequestOptions): Headers {
     headers.set('content-type', 'application/json');
   }
 
-  const token = options.accessToken ?? getCookie('access_token');
+  const token = options.accessToken ?? getCookie(authConfig.cookieName);
   if (token) {
     headers.set('authorization', `Bearer ${token}`);
   }
@@ -61,6 +66,7 @@ export async function apiClient<TResponse>(
       options.body === undefined ? undefined : JSON.stringify(options.body),
     headers: createHeaders(options),
     method: options.method ?? 'GET',
+    credentials: 'include',
   });
 
   const payload = await parseResponse(response);

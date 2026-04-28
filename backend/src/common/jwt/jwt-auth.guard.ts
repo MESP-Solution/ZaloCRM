@@ -55,7 +55,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    if (payload.role === 'admin') {
+    if (payload.roles.includes('admin')) {
       const admin = this.bootstrapAdminService.getAdmin();
 
       if (payload.sub !== admin.id) {
@@ -66,7 +66,6 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    // Trust status from JWT payload - no DB hit needed
     if (payload.status === 'disabled') {
       throw new UnauthorizedException('Account is disabled');
     }
@@ -75,7 +74,7 @@ export class JwtAuthGuard implements CanActivate {
       id: payload.sub,
       email: payload.email,
       name: payload.name,
-      role: payload.role,
+      roles: payload.roles,
       status: payload.status,
     };
     return true;

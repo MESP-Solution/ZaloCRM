@@ -22,7 +22,7 @@ export class CustomerAccount {
   @Enum({ items: () => ['active', 'disabled'] })
   status!: CustomerStatus;
 
-  @ManyToMany(() => Role, (role) => role.customers)
+  @ManyToMany({ entity: () => Role, inversedBy: 'customers' })
   roles = new Collection<Role>(this);
 
   @Property({ type: 'Date' })

@@ -1,5 +1,5 @@
 import { Migrator } from '@mikro-orm/migrations';
-import { defineConfig, PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { defineConfig, MySqlDriver } from '@mikro-orm/mysql';
 import { AppConfigService } from './app-config.service';
 import { CustomerAccount } from '../modules/customers/customer-account.entity';
 import { ZaloAccount } from '../modules/zalo-accounts/zalo-account.entity';
@@ -8,13 +8,12 @@ import { Role } from '../modules/roles/role.entity';
 
 export function createMikroOrmConfig(appConfig: AppConfigService) {
   return defineConfig({
-    driver: PostgreSqlDriver,
-    clientUrl: appConfig.databaseUrl,
-    driverOptions: {
-      connection: {
-        ssl: appConfig.databaseSsl ? { rejectUnauthorized: false } : false,
-      },
-    },
+    driver: MySqlDriver,
+    host: appConfig.dbHost,
+    port: appConfig.dbPort,
+    user: appConfig.dbUser,
+    password: appConfig.dbPassword,
+    dbName: appConfig.dbName,
     entities: [CustomerAccount, ZaloAccount, MessagingCampaign, Role],
     extensions: [Migrator],
     migrations: {

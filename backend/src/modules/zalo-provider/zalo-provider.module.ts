@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
-import { NotConfiguredZaloProviderService } from './not-configured-zalo-provider.service';
+import { ZaloProviderLiveService } from './zalo-provider-live.service';
 import { ZALO_PROVIDER } from './zalo-provider.port';
+import { ZaloConnectionModule } from '../zalo-connection/zalo-connection.module';
 
 @Module({
+  imports: [ZaloConnectionModule],
   providers: [
-    NotConfiguredZaloProviderService,
+    ZaloProviderLiveService,
     {
       provide: ZALO_PROVIDER,
-      useExisting: NotConfiguredZaloProviderService,
+      useExisting: ZaloProviderLiveService,
     },
   ],
   exports: [ZALO_PROVIDER],

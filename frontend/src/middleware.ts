@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const PUBLIC_PATHS = ['/login', '/register'];
 const PROTECTED_PREFIXES = ['/dashboard', '/contacts', '/companies', '/deals', '/leads', '/messages', '/accounts'];
+const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME ?? 'access_token';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,7 +12,7 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   if (!isPublic && isProtected) {
-    const hasToken = request.cookies.has('access_token');
+    const hasToken = request.cookies.has(AUTH_COOKIE_NAME);
     if (!hasToken) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
@@ -20,7 +21,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (isPublic && pathname === '/login') {
-    const hasToken = request.cookies.has('access_token');
+    const hasToken = request.cookies.has(AUTH_COOKIE_NAME);
     if (hasToken) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }

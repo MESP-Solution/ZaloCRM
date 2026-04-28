@@ -41,19 +41,13 @@ export class CustomersController {
     return this.customersService.findByIdPublic(customerId);
   }
 
-  private toPublicCustomer(customer: {
-    id: string;
-    email: string;
-    name: string;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }) {
+  private toPublicCustomer(customer: import('./customer-account.entity').CustomerAccount) {
     return {
       id: customer.id,
       email: customer.email,
       name: customer.name,
       status: customer.status,
+      roles: customer.roles.getItems().map((r) => r.name),
       createdAt: customer.createdAt,
       updatedAt: customer.updatedAt,
     };

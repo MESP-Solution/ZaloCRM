@@ -2,11 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { loadEnvFile } from './load-env-file';
 import { requireEnv, requireNumberEnv } from './required-env';
 
-export interface DatabaseConfig {
-  url: string;
-  ssl: boolean;
-}
-
 @Injectable()
 export class AppConfigService {
   constructor() {
@@ -28,18 +23,31 @@ export class AppConfigService {
       .filter(Boolean);
   }
 
-  get database(): DatabaseConfig {
-    return {
-      url: this.databaseUrl,
-      ssl: requireEnv('DATABASE_SSL').toLowerCase() === 'true',
-    };
+  get dbHost(): string {
+    return requireEnv('DB_HOST');
   }
 
-  get databaseUrl(): string {
-    return requireEnv('DATABASE_URL');
+  get dbPort(): number {
+    return requireNumberEnv('DB_PORT');
   }
 
-  get databaseSsl(): boolean {
-    return this.database.ssl;
+  get dbUser(): string {
+    return requireEnv('DB_USER');
+  }
+
+  get dbPassword(): string {
+    return requireEnv('DB_PASSWORD');
+  }
+
+  get dbName(): string {
+    return requireEnv('DB_NAME');
+  }
+
+  get zaloCookieEncryptionKey(): string {
+    return requireEnv('ZALO_COOKIE_ENCRYPTION_KEY');
+  }
+
+  get zaloMaxAccountsPerProxy(): number {
+    return requireNumberEnv('ZALO_MAX_ACCOUNTS_PER_PROXY');
   }
 }

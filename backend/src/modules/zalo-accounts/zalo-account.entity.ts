@@ -13,7 +13,8 @@ export type ZaloAccountStatus =
   | 'pending_login'
   | 'active'
   | 'disconnected'
-  | 'restricted';
+  | 'restricted'
+  | 'login_failed';
 
 @Entity()
 export class ZaloAccount {
@@ -31,12 +32,27 @@ export class ZaloAccount {
   providerAccountId?: string;
 
   @Enum({
-    items: () => ['pending_login', 'active', 'disconnected', 'restricted'],
+    items: () => ['pending_login', 'active', 'disconnected', 'restricted', 'login_failed'],
   })
   status!: ZaloAccountStatus;
 
   @Property({ type: 'Date', onCreate: () => new Date() })
   createdAt!: Date;
+
+  @Property({ type: 'string', nullable: true })
+  phoneNumber?: string;
+
+  @Property({ type: 'string', nullable: true, length: 2048 })
+  avatarUrl?: string;
+
+  @Property({ type: 'string', nullable: true })
+  proxyUrl?: string;
+
+  @Property({ type: 'text', nullable: true })
+  encryptedCookieData?: string;
+
+  @Property({ type: 'Date', nullable: true })
+  lastConnectedAt?: Date;
 
   @Property({
     type: 'Date',

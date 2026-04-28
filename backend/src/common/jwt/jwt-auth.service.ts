@@ -2,15 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
 import { requireNumberEnv } from '../../config/required-env';
-import {
-  AuthenticatedPrincipal,
-  AuthRole,
-} from '../../modules/auth/auth-session.entity';
+import { AuthenticatedPrincipal } from '../../modules/auth/auth-session.entity';
 
 export interface JwtPayload {
   sub: string;
   jti: string;
-  role: AuthRole;
+  roles: string[];
   email: string;
   name: string;
   status: 'active' | 'disabled';
@@ -25,7 +22,7 @@ export class JwtAuthService {
     const payload: JwtPayload = {
       sub: user.id,
       jti: randomUUID(),
-      role: user.role,
+      roles: user.roles,
       email: user.email,
       name: user.name,
       status: user.status,

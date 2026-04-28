@@ -1,14 +1,12 @@
-export interface LoginRequest {
+export interface AuthUser {
+  id: string;
   email: string;
-  password: string;
+  name: string;
+  roles: string[];
+  status: 'active' | 'disabled';
 }
 
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken?: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-  };
+  expiresAt: string;
+  user: AuthUser;
 }

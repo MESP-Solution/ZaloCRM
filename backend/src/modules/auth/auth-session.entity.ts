@@ -4,13 +4,11 @@ export interface AuthSession {
   user: AuthenticatedPrincipal;
 }
 
-export type AuthRole = 'admin' | 'customer' | 'manager';
-
 export interface AuthenticatedPrincipal {
   id: string;
   email: string;
   name: string;
-  role: AuthRole;
+  roles: string[];
   status: 'active' | 'disabled';
 }
 
