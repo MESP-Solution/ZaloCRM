@@ -7,8 +7,16 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { MessagingCampaign } from './messaging-campaign.entity';
 import { MessagingCampaignStatus } from './messaging-campaign.entity';
+import { CampaignZaloAccount } from './campaign-zalo-account.entity';
+import { CampaignRecipient } from './campaign-recipient.entity';
 import { CustomersService } from '../customers/customers.service';
 import { ZaloAccountsService } from '../zalo-accounts/zalo-accounts.service';
+
+interface RecipientInput {
+  phone: string;
+  zaloId?: string;
+  name?: string;
+}
 
 @Injectable()
 export class MessagingCampaignsService {
@@ -18,40 +26,70 @@ export class MessagingCampaignsService {
     private readonly zaloAccountsService: ZaloAccountsService,
     @InjectRepository(MessagingCampaign)
     private readonly campaignRepo: EntityRepository<MessagingCampaign>,
+    @InjectRepository(CampaignRecipient)
+    private readonly recipientRepo: EntityRepository<CampaignRecipient>,
+    @InjectRepository(CampaignZaloAccount)
+    private readonly campaignAccountRepo: EntityRepository<CampaignZaloAccount>,
   ) {}
 
   async createCampaign(
     customerId: string,
     name: string,
     messageText: string,
-    zaloAccountId: string,
+    zaloAccountIds: string[],
+    recipients: RecipientInput[],
     scheduleAt?: Date,
   ): Promise<MessagingCampaign> {
     const customer = await this.customersService.findById(customerId);
-    const zaloAccount = await this.zaloAccountsService.findById(zaloAccountId);
-
     if (!customer) {
       throw new NotFoundException('Customer not found');
     }
 
-    if (!zaloAccount) {
-      throw new NotFoundException('Zalo account not found');
+    if (!zaloAccountIds.length) {
+      throw new BadRequestException('At least one Zalo account is required');
     }
 
-    if (zaloAccount.customer.id !== customer.id) {
-      throw new BadRequestException('Zalo account does not belong to customer');
+    if (!recipients.length) {
+      throw new BadRequestException('At least one recipient is required');
     }
 
-    const campaign = new MessagingCampaign(
-      customer,
-      name,
-      messageText,
-      zaloAccount,
+    const zaloAccounts = await Promise.all(
+      zaloAccountIds.map(async (id) => {
+        const account = await this.zaloAccountsService.findById(id);
+        if (!account) {
+          throw new NotFoundException(`Zalo account ${id} not found`);
+        }
+        if (account.customer.id !== customer.id) {
+          throw new BadRequestException(
+            `Zalo account ${id} does not belong to customer`,
+          );
+        }
+        return account;
+      }),
     );
+
+    const campaign = new MessagingCampaign(customer, name, messageText);
     if (scheduleAt) {
       campaign.scheduleAt = scheduleAt;
     }
+    campaign.queuedCount = recipients.length;
     this.em.persist(campaign);
+
+    for (const account of zaloAccounts) {
+      const campaignAccount = new CampaignZaloAccount(campaign, account);
+      this.em.persist(campaignAccount);
+    }
+
+    for (const r of recipients) {
+      const recipient = new CampaignRecipient(
+        campaign,
+        r.phone,
+        r.zaloId,
+        r.name,
+      );
+      this.em.persist(recipient);
+    }
+
     await this.em.flush();
     return campaign;
   }
@@ -80,32 +118,92 @@ export class MessagingCampaignsService {
       return null;
     }
     campaign.status = status;
+    campaign.updatedAt = new Date();
     await this.em.flush();
     return campaign;
   }
 
-  async updateResults(
-    campaignId: string,
-    results: {
-      sent?: number;
-      delivered?: number;
-      failed?: number;
-    },
-  ): Promise<MessagingCampaign | null> {
+  async pauseCampaign(campaignId: string): Promise<MessagingCampaign | null> {
     const campaign = await this.campaignRepo.findOne({ id: campaignId });
     if (!campaign) {
       return null;
     }
-    if (results.sent !== undefined) {
-      campaign.sentCount = results.sent;
+    if (campaign.status !== 'sending') {
+      throw new BadRequestException('Can only pause a sending campaign');
     }
-    if (results.delivered !== undefined) {
-      campaign.deliveredCount = results.delivered;
-    }
-    if (results.failed !== undefined) {
-      campaign.failedCount = results.failed;
-    }
+    campaign.status = 'paused_no_available_account';
+    campaign.updatedAt = new Date();
     await this.em.flush();
     return campaign;
+  }
+
+  async resumeCampaign(campaignId: string): Promise<MessagingCampaign | null> {
+    const campaign = await this.campaignRepo.findOne({ id: campaignId });
+    if (!campaign) {
+      return null;
+    }
+    const pausedStatuses = [
+      'paused_quota_exhausted',
+      'paused_no_available_account',
+    ];
+    if (!pausedStatuses.includes(campaign.status)) {
+      throw new BadRequestException('Can only resume a paused campaign');
+    }
+
+    // Reset quota_exhausted accounts back to active for retry
+    const campaignAccounts = await this.campaignAccountRepo.find({
+      campaign: { id: campaignId },
+      status: 'quota_exhausted',
+    });
+    for (const ca of campaignAccounts) {
+      ca.status = 'active';
+      ca.updatedAt = new Date();
+    }
+
+    await this.em.flush();
+    return campaign;
+  }
+
+  async cancelCampaign(campaignId: string): Promise<MessagingCampaign | null> {
+    const campaign = await this.campaignRepo.findOne({ id: campaignId });
+    if (!campaign) {
+      return null;
+    }
+    if (campaign.status === 'completed' || campaign.status === 'cancelled') {
+      throw new BadRequestException(
+        'Cannot cancel a completed or already cancelled campaign',
+      );
+    }
+    campaign.status = 'cancelled';
+    campaign.updatedAt = new Date();
+    await this.em.flush();
+    return campaign;
+  }
+
+  async getCampaignAccounts(
+    campaignId: string,
+  ): Promise<CampaignZaloAccount[]> {
+    return this.campaignAccountRepo.find(
+      { campaign: { id: campaignId } },
+      { populate: ['zaloAccount'] },
+    );
+  }
+
+  async getRecipients(
+    campaignId: string,
+    options?: { status?: string; page?: number; limit?: number },
+  ): Promise<{ data: CampaignRecipient[]; total: number }> {
+    const where: Record<string, unknown> = { campaign: { id: campaignId } };
+    if (options?.status) {
+      where.status = options.status;
+    }
+    const page = options?.page ?? 1;
+    const limit = Math.min(options?.limit ?? 50, 200);
+    const [data, total] = await this.recipientRepo.findAndCount(where, {
+      limit,
+      offset: (page - 1) * limit,
+      orderBy: { createdAt: 'ASC' },
+    });
+    return { data, total };
   }
 }

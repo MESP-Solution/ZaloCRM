@@ -19,9 +19,7 @@ function parseCookies(header: string): Record<string, string> {
 }
 
 @WebSocketGateway({ path: '/ws/zalo-qr' })
-export class ZaloQrGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class ZaloQrGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(ZaloQrGateway.name);
   private readonly waitingClients = new Map<string, Set<WebSocket>>();
 
@@ -73,11 +71,7 @@ export class ZaloQrGateway
     });
   }
 
-  emitLoginResult(
-    accountId: string,
-    success: boolean,
-    error?: string,
-  ): void {
+  emitLoginResult(accountId: string, success: boolean, error?: string): void {
     this.sendToSubscribers(accountId, {
       event: 'login_result',
       data: { accountId, success, error },
@@ -96,9 +90,7 @@ export class ZaloQrGateway
       this.waitingClients.set(accountId, new Set());
     }
     this.waitingClients.get(accountId)!.add(client);
-    this.logger.log(
-      `Client subscribed to QR events for account ${accountId}`,
-    );
+    this.logger.log(`Client subscribed to QR events for account ${accountId}`);
   }
 
   private sendToSubscribers(

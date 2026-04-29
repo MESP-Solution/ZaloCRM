@@ -22,11 +22,7 @@ export class ZaloProviderLiveService implements ZaloProviderPort {
       );
     }
 
-    await api.sendMessage(
-      command.text,
-      command.recipientId,
-      ThreadType.User,
-    );
+    await api.sendMessage(command.text, command.recipientId, ThreadType.User);
 
     return {
       providerMessageId: randomUUID(),

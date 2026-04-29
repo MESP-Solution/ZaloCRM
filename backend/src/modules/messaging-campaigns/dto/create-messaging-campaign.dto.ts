@@ -1,7 +1,8 @@
 export class CreateMessagingCampaignDto {
   customerId!: string;
-  zaloAccountId!: string;
+  zaloAccountIds!: string[];
   name!: string;
   messageText!: string;
-  recipientIds!: string[];
+  recipients!: { phone: string; zaloId?: string; name?: string }[];
+  scheduleAt?: string;
 }

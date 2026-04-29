@@ -29,7 +29,11 @@ export class ZaloAccountsService {
 
   async findById(accountId: string): Promise<ZaloAccount | null> {
     const fork = this.em.fork();
-    return fork.findOne(ZaloAccount, { id: accountId }, { populate: ['customer'] });
+    return fork.findOne(
+      ZaloAccount,
+      { id: accountId },
+      { populate: ['customer'] },
+    );
   }
 
   async findByCustomerId(customerId: string): Promise<ZaloAccount[]> {

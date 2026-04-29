@@ -9,7 +9,11 @@ import { ZaloCookieEncryptionService } from './zalo-cookie-encryption.service';
 import { ZaloProxyService } from './zalo-proxy.service';
 
 @Module({
-  imports: [forwardRef(() => ZaloAccountsModule), AppConfigModule, JwtAuthModule],
+  imports: [
+    forwardRef(() => ZaloAccountsModule),
+    AppConfigModule,
+    JwtAuthModule,
+  ],
   controllers: [ZaloConnectionController],
   providers: [
     ZaloConnectionRegistry,

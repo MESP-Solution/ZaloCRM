@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { CustomerAccount } from './customer-account.entity';
@@ -52,7 +56,10 @@ export class CustomersService {
   }
 
   async findById(customerId: string): Promise<CustomerAccount | null> {
-    return this.customerRepo.findOne({ id: customerId }, { populate: ['roles'] });
+    return this.customerRepo.findOne(
+      { id: customerId },
+      { populate: ['roles'] },
+    );
   }
 
   async findByIdPublic(customerId: string) {

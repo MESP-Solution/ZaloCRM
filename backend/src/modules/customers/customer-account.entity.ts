@@ -1,4 +1,10 @@
-import { Entity, PrimaryKey, Property, Enum, ManyToMany } from '@mikro-orm/decorators/legacy';
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  Enum,
+  ManyToMany,
+} from '@mikro-orm/decorators/legacy';
 import { Collection } from '@mikro-orm/core';
 import { v4 as uuidv4 } from 'uuid';
 import { Role } from '../roles/role.entity';

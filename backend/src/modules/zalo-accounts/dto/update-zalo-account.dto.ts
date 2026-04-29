@@ -1,15 +1,26 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateZaloAccountDto {
-  @ApiPropertyOptional({ description: 'New display name', example: 'My Zalo Account' })
+  @ApiPropertyOptional({
+    description: 'New display name',
+    example: 'My Zalo Account',
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   displayName?: string;
 
-  @ApiPropertyOptional({ description: 'Device IMEI (provide all 3 credential fields to reconnect)' })
+  @ApiPropertyOptional({
+    description: 'Device IMEI (provide all 3 credential fields to reconnect)',
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()

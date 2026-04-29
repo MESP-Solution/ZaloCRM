@@ -38,8 +38,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const accounts =
-      await this.accountsService.findActiveAccountsWithCookies();
+    const accounts = await this.accountsService.findActiveAccountsWithCookies();
     this.logger.log(
       `Found ${accounts.length} active accounts to reconnect on startup`,
     );
@@ -54,7 +53,9 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
 
     const failed = results.filter((r) => r.status === 'rejected');
     if (failed.length > 0) {
-      this.logger.warn(`${failed.length}/${accounts.length} accounts failed to reconnect`);
+      this.logger.warn(
+        `${failed.length}/${accounts.length} accounts failed to reconnect`,
+      );
     }
   }
 
@@ -92,7 +93,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
       const zalo = this.createZaloInstance(proxyUrl);
       const credentials: Credentials = {
         imei: input.imei,
-        cookie: input.cookie as Credentials['cookie'],
+        cookie: input.cookie,
         userAgent: input.userAgent,
       };
 
@@ -159,7 +160,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
       const zalo = this.createZaloInstance();
       const credentials: Credentials = {
         imei: input.imei,
-        cookie: input.cookie as Credentials['cookie'],
+        cookie: input.cookie,
         userAgent: input.userAgent,
       };
 
@@ -176,8 +177,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
   async listConnectedByCustomer(
     customerId: string,
   ): Promise<ZaloConnectionInfo[]> {
-    const accounts =
-      await this.accountsService.findByCustomerId(customerId);
+    const accounts = await this.accountsService.findByCustomerId(customerId);
     const accountIds = new Set(accounts.map((a) => a.id));
     return this.registry.listAll().filter((c) => accountIds.has(c.accountId));
   }
@@ -253,9 +253,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
 
     try {
       if (!account.encryptedCookieData) {
-        throw new BadRequestException(
-          'No saved cookie data for this account',
-        );
+        throw new BadRequestException('No saved cookie data for this account');
       }
 
       const cookieData = this.encryptionService.decrypt(

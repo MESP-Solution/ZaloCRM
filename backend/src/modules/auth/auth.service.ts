@@ -32,7 +32,9 @@ export class AuthService {
     let user: AuthenticatedPrincipal | null = null;
 
     if (isAdminEmail) {
-      const valid = await this.bootstrapAdminService.verifyPassword(dto.password);
+      const valid = await this.bootstrapAdminService.verifyPassword(
+        dto.password,
+      );
       if (valid) {
         user = this.bootstrapAdminService.getAdmin();
       }
@@ -67,7 +69,9 @@ export class AuthService {
     return this.jwtAuthService.signSession(user);
   }
 
-  async register(dto: RegisterRequestDto): Promise<{ user: AuthenticatedPrincipal }> {
+  async register(
+    dto: RegisterRequestDto,
+  ): Promise<{ user: AuthenticatedPrincipal }> {
     const email = dto.email.trim().toLowerCase();
     const name = dto.name.trim();
 

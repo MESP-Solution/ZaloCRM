@@ -50,4 +50,14 @@ export class AppConfigService {
   get zaloMaxAccountsPerProxy(): number {
     return requireNumberEnv('ZALO_MAX_ACCOUNTS_PER_PROXY');
   }
+
+  get zaloDailySendLimit(): number {
+    const val = process.env['ZALO_DAILY_SEND_LIMIT'];
+    return val ? Number(val) : 50;
+  }
+
+  get campaignSendDelayMs(): number {
+    const val = process.env['CAMPAIGN_SEND_DELAY_MS'];
+    return val ? Number(val) : 2000;
+  }
 }

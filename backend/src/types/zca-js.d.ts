@@ -44,7 +44,11 @@ declare module 'zca-js' {
     | {
         type: LoginQRCallbackEventType.QRCodeGenerated;
         data: { code: string; image: string; token: string };
-        actions: { saveToFile: (path?: string) => Promise<unknown>; retry: () => unknown; abort: () => unknown };
+        actions: {
+          saveToFile: (path?: string) => Promise<unknown>;
+          retry: () => unknown;
+          abort: () => unknown;
+        };
       }
     | {
         type: LoginQRCallbackEventType.QRCodeExpired;
@@ -127,21 +131,39 @@ declare module 'zca-js' {
     fetchAccountInfo(): Promise<FetchAccountInfoResponse>;
     getOwnId(): string;
     getContext(): ContextSession;
-    sendMessage(message: string | object, threadId: string, type: ThreadType): Promise<unknown>;
+    sendMessage(
+      message: string | object,
+      threadId: string,
+      type: ThreadType,
+    ): Promise<unknown>;
     findUser(phone: string): Promise<FindUserResponse>;
     getUserInfo(userId: string): Promise<unknown>;
     sendFriendRequest(message: string, userId: string): Promise<unknown>;
-    createGroup(options: { members: string[]; name?: string; avatarPath?: string }): Promise<unknown>;
+    createGroup(options: {
+      members: string[];
+      name?: string;
+      avatarPath?: string;
+    }): Promise<unknown>;
     getGroupInfo(groupId: string | string[]): Promise<unknown>;
-    addUserToGroup(memberId: string | string[], groupId: string): Promise<unknown>;
-    removeUserFromGroup(memberId: string | string[], groupId: string): Promise<unknown>;
+    addUserToGroup(
+      memberId: string | string[],
+      groupId: string,
+    ): Promise<unknown>;
+    removeUserFromGroup(
+      memberId: string | string[],
+      groupId: string,
+    ): Promise<unknown>;
   }
 
   export class Zalo {
     constructor(options?: Partial<Options>);
     login(credentials: Credentials): Promise<API>;
     loginQR(
-      options?: { userAgent?: string; language?: string; qrPath?: string } | null,
+      options?: {
+        userAgent?: string;
+        language?: string;
+        qrPath?: string;
+      } | null,
       callback?: LoginQRCallback,
     ): Promise<API>;
   }

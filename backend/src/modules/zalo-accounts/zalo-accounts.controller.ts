@@ -44,7 +44,9 @@ export class ZaloAccountsController {
   }
 
   @Patch(':accountId')
-  @ApiOperation({ summary: 'Update own Zalo account (provide credentials to reconnect)' })
+  @ApiOperation({
+    summary: 'Update own Zalo account (provide credentials to reconnect)',
+  })
   async updateAccount(
     @Req() req: Request,
     @Param('accountId') accountId: string,
@@ -67,10 +69,18 @@ export class ZaloAccountsController {
     }
 
     if (dto.displayName) {
-      await this.zaloAccountsService.updateDisplayName(accountId, dto.displayName);
+      await this.zaloAccountsService.updateDisplayName(
+        accountId,
+        dto.displayName,
+      );
     }
 
-    return { success: true, message: hasCredentials ? 'Credentials updated and reconnected' : 'Account updated' };
+    return {
+      success: true,
+      message: hasCredentials
+        ? 'Credentials updated and reconnected'
+        : 'Account updated',
+    };
   }
 
   @Delete(':accountId')

@@ -1,5 +1,10 @@
 import { Controller, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiCookieAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiCookieAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../common/auth/roles.guard';
 import { CustomersService } from './customers.service';
@@ -41,7 +46,9 @@ export class CustomersController {
     return this.customersService.findByIdPublic(customerId);
   }
 
-  private toPublicCustomer(customer: import('./customer-account.entity').CustomerAccount) {
+  private toPublicCustomer(
+    customer: import('./customer-account.entity').CustomerAccount,
+  ) {
     return {
       id: customer.id,
       email: customer.email,

@@ -1,9 +1,17 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LoginWithCookieDto {
   @ApiPropertyOptional({
-    description: 'Display name for the Zalo account (auto-fetched from Zalo profile if omitted)',
+    description:
+      'Display name for the Zalo account (auto-fetched from Zalo profile if omitted)',
     example: 'My Zalo Account',
   })
   @IsOptional()

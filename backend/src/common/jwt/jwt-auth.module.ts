@@ -25,6 +25,12 @@ loadEnvFile();
     BootstrapAdminService,
     PasswordService,
   ],
-  exports: [JwtAuthService, JwtAuthGuard, AuthCookieService, BootstrapAdminService, PasswordService],
+  exports: [
+    JwtAuthService,
+    JwtAuthGuard,
+    AuthCookieService,
+    BootstrapAdminService,
+    PasswordService,
+  ],
 })
 export class JwtAuthModule {}

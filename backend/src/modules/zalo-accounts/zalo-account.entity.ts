@@ -32,7 +32,13 @@ export class ZaloAccount {
   providerAccountId?: string;
 
   @Enum({
-    items: () => ['pending_login', 'active', 'disconnected', 'restricted', 'login_failed'],
+    items: () => [
+      'pending_login',
+      'active',
+      'disconnected',
+      'restricted',
+      'login_failed',
+    ],
   })
   status!: ZaloAccountStatus;
 
