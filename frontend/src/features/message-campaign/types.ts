@@ -1,16 +1,55 @@
+export type CampaignStartMode = 'now' | 'scheduled';
+
 export interface PhoneEntry {
   id: string;
   phoneNumber: string;
-  name: string;
-  selected: boolean;
+  inputPhoneNumber: string;
+  zaloName: string;
+  avatarUrl: string;
 }
 
 export interface CampaignFormData {
   campaignName: string;
-  pauseDuration: number;
-  executionLimit: number;
+  selectedZaloAccountIds: string[];
+  startMode: CampaignStartMode;
   startDate: string;
-  phonesPerAccount: number;
+  delayMinSeconds: number;
+  delayMaxSeconds: number;
+  maxRecipientsPerAccount: number;
+  skipFailedAccount: boolean;
   messageContent: string;
-  imageFile: File | null;
+}
+
+export interface CampaignRecipientPayload {
+  phoneNumber: string;
+  name?: string;
+  avatarUrl?: string;
+}
+
+export interface ZaloUserLookupResponse {
+  phoneNumber: string;
+  inputPhoneNumber: string;
+  zaloName: string;
+  avatarUrl: string;
+  displayName: string;
+  uid: string;
+}
+
+export interface ZaloUsersLookupResponse {
+  results: ZaloUserLookupResponse[];
+  failedCount: number;
+}
+
+export interface MessageCampaignSubmitPayload {
+  name: string;
+  messageText: string;
+  zaloAccountIds: string[];
+  recipients: CampaignRecipientPayload[];
+  sending: {
+    delayMinSeconds: number;
+    delayMaxSeconds: number;
+    maxRecipientsPerAccount: number;
+    scheduleAt?: string;
+    skipFailedAccount: boolean;
+  };
 }

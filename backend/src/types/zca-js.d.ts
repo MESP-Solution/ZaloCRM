@@ -81,6 +81,20 @@ declare module 'zca-js' {
     profile: User;
   }
 
+  export type FindUserResponse = {
+    avatar: string;
+    cover: string;
+    status: string;
+    gender: unknown;
+    dob: number;
+    sdob: string;
+    globalId: string;
+    bizPkg: unknown;
+    uid: string;
+    zalo_name: string;
+    display_name: string;
+  };
+
   export interface CookieJarJSON {
     cookies: object[];
   }
@@ -114,7 +128,7 @@ declare module 'zca-js' {
     getOwnId(): string;
     getContext(): ContextSession;
     sendMessage(message: string | object, threadId: string, type: ThreadType): Promise<unknown>;
-    findUser(phone: string): Promise<unknown>;
+    findUser(phone: string): Promise<FindUserResponse>;
     getUserInfo(userId: string): Promise<unknown>;
     sendFriendRequest(message: string, userId: string): Promise<unknown>;
     createGroup(options: { members: string[]; name?: string; avatarPath?: string }): Promise<unknown>;

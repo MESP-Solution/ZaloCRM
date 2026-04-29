@@ -9,7 +9,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Zalo } from 'zca-js';
-import type { API, Credentials } from 'zca-js';
+import type { API, Credentials, FindUserResponse } from 'zca-js';
 import nodefetch from 'node-fetch';
 import { ZaloConnectionRegistry } from './zalo-connection-registry';
 import { ZaloAccountsService } from '../zalo-accounts/zalo-accounts.service';
@@ -180,6 +180,52 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
       await this.accountsService.findByCustomerId(customerId);
     const accountIds = new Set(accounts.map((a) => a.id));
     return this.registry.listAll().filter((c) => accountIds.has(c.accountId));
+  }
+
+  async findUsersByPhoneNumbers(
+    customerId: string,
+    phoneNumbers: string[],
+  ): Promise<{
+    results: {
+      phoneNumber: string;
+      avatar: string;
+      uid: string;
+      zalo_name: string;
+      display_name: string;
+    }[];
+    failedCount: number;
+  }> {
+    const connection = await this.getConnectedApiForCustomer(customerId);
+    const results: {
+      phoneNumber: string;
+      avatar: string;
+      uid: string;
+      zalo_name: string;
+      display_name: string;
+    }[] = [];
+    let failedCount = 0;
+
+    for (const phoneNumber of phoneNumbers) {
+      try {
+        const response = await connection.api.findUser(phoneNumber);
+        if (!this.isFindUserResponse(response)) {
+          failedCount += 1;
+          continue;
+        }
+
+        results.push({
+          phoneNumber,
+          avatar: response.avatar,
+          uid: response.uid,
+          zalo_name: response.zalo_name,
+          display_name: response.display_name,
+        });
+      } catch {
+        failedCount += 1;
+      }
+    }
+
+    return { results, failedCount };
   }
 
   getConnectionDetail(accountId: string): ZaloConnectionInfo | null {
@@ -355,5 +401,34 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     const last = this.reconnectCooldowns.get(accountId);
     if (!last) return true;
     return Date.now() - last >= RECONNECT_COOLDOWN_MS;
+  }
+
+  private async getConnectedApiForCustomer(customerId: string): Promise<{
+    accountId: string;
+    api: API;
+  }> {
+    const connections = await this.listConnectedByCustomer(customerId);
+    const primary = connections[0];
+    if (!primary) {
+      throw new NotFoundException('No connected Zalo account available');
+    }
+
+    const api = this.registry.getApi(primary.accountId);
+    if (!api) {
+      throw new NotFoundException('No connected Zalo account available');
+    }
+
+    return { accountId: primary.accountId, api };
+  }
+
+  private isFindUserResponse(value: unknown): value is FindUserResponse {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as Record<string, unknown>).avatar === 'string' &&
+      typeof (value as Record<string, unknown>).display_name === 'string' &&
+      typeof (value as Record<string, unknown>).zalo_name === 'string' &&
+      typeof (value as Record<string, unknown>).uid === 'string'
+    );
   }
 }

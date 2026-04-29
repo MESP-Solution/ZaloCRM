@@ -13,6 +13,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { ZaloConnectionService } from './zalo-connection.service';
 import { LoginWithCookieDto } from './dto/login-with-cookie.dto';
+import { FindZaloUsersDto } from './dto/find-zalo-users.dto';
 
 @ApiTags('Zalo Connections')
 @ApiCookieAuth('access_token')
@@ -38,6 +39,15 @@ export class ZaloConnectionController {
       accountId: result.accountId,
       message: 'Zalo account created and connected',
     };
+  }
+
+  @Post('find-users')
+  @ApiOperation({ summary: 'Resolve phone numbers with zca-js api.findUser' })
+  async findUsers(@Req() req: Request, @Body() dto: FindZaloUsersDto) {
+    return this.connectionService.findUsersByPhoneNumbers(
+      req.user!.id,
+      dto.phoneNumbers,
+    );
   }
 
   @Post(':accountId/reconnect')
