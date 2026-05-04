@@ -9,6 +9,7 @@ import { CampaignRecipient } from '../modules/messaging-campaigns/campaign-recip
 import { DeliveryAttempt } from '../modules/messaging-campaigns/delivery-attempt.entity';
 import { DailyAccountUsage } from '../modules/messaging-campaigns/daily-account-usage.entity';
 import { Role } from '../modules/roles/role.entity';
+import { CustomerContact } from '../modules/customer-contacts/customer-contact.entity';
 
 export function createMikroOrmConfig(appConfig: AppConfigService) {
   return defineConfig({
@@ -27,11 +28,13 @@ export function createMikroOrmConfig(appConfig: AppConfigService) {
       DeliveryAttempt,
       DailyAccountUsage,
       Role,
+      CustomerContact,
     ],
     extensions: [Migrator],
     migrations: {
       path: './dist/migrations',
       pathTs: './migrations',
+      glob: '!(*.d).ts',
       emit: 'ts' as const,
     },
   });

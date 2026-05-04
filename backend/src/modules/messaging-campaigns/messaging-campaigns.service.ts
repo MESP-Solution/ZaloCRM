@@ -5,8 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
-import { MessagingCampaign } from './messaging-campaign.entity';
-import { MessagingCampaignStatus } from './messaging-campaign.entity';
+import {
+  MessagingCampaign,
+  MessagingCampaignStatus,
+} from './messaging-campaign.entity';
 import { CampaignZaloAccount } from './campaign-zalo-account.entity';
 import { CampaignRecipient } from './campaign-recipient.entity';
 import { CustomersService } from '../customers/customers.service';
@@ -16,6 +18,7 @@ interface RecipientInput {
   phone: string;
   zaloId?: string;
   name?: string;
+  gender?: number;
 }
 
 @Injectable()
@@ -39,6 +42,7 @@ export class MessagingCampaignsService {
     zaloAccountIds: string[],
     recipients: RecipientInput[],
     scheduleAt?: Date,
+    imageFilePath?: string,
   ): Promise<MessagingCampaign> {
     const customer = await this.customersService.findById(customerId);
     if (!customer) {
@@ -69,8 +73,12 @@ export class MessagingCampaignsService {
     );
 
     const campaign = new MessagingCampaign(customer, name, messageText);
+    if (imageFilePath) {
+      campaign.imageFilePath = imageFilePath;
+    }
     if (scheduleAt) {
       campaign.scheduleAt = scheduleAt;
+      campaign.status = 'queued';
     }
     campaign.queuedCount = recipients.length;
     this.em.persist(campaign);
@@ -86,6 +94,7 @@ export class MessagingCampaignsService {
         r.phone,
         r.zaloId,
         r.name,
+        r.gender,
       );
       this.em.persist(recipient);
     }
@@ -131,7 +140,7 @@ export class MessagingCampaignsService {
     if (campaign.status !== 'sending') {
       throw new BadRequestException('Can only pause a sending campaign');
     }
-    campaign.status = 'paused_no_available_account';
+    campaign.status = 'paused_manual';
     campaign.updatedAt = new Date();
     await this.em.flush();
     return campaign;
@@ -142,7 +151,8 @@ export class MessagingCampaignsService {
     if (!campaign) {
       return null;
     }
-    const pausedStatuses = [
+    const pausedStatuses: MessagingCampaignStatus[] = [
+      'paused_manual',
       'paused_quota_exhausted',
       'paused_no_available_account',
     ];
@@ -150,7 +160,9 @@ export class MessagingCampaignsService {
       throw new BadRequestException('Can only resume a paused campaign');
     }
 
-    // Reset quota_exhausted accounts back to active for retry
+    campaign.status = 'queued';
+    campaign.updatedAt = new Date();
+
     const campaignAccounts = await this.campaignAccountRepo.find({
       campaign: { id: campaignId },
       status: 'quota_exhausted',

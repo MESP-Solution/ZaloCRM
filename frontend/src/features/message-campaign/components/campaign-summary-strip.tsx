@@ -1,19 +1,21 @@
 interface Props {
   selectedAccountCount: number;
-  recipientCount: number;
+  selectedRecipientCount: number;
+  totalContactCount: number;
   estimatedDurationLabel: string;
   blockerCount: number;
 }
 
 export function CampaignSummaryStrip({
   selectedAccountCount,
-  recipientCount,
+  selectedRecipientCount,
+  totalContactCount,
   estimatedDurationLabel,
   blockerCount,
 }: Props) {
   const items = [
     { label: 'Tài khoản gửi', value: selectedAccountCount.toString() },
-    { label: 'SĐT đã thêm', value: recipientCount.toString() },
+    { label: 'Người nhận', value: `${selectedRecipientCount}/${totalContactCount}` },
     { label: 'Thời gian dự kiến', value: estimatedDurationLabel },
     { label: 'Cần xử lý', value: blockerCount.toString() },
   ];

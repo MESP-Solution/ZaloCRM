@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { zaloAccountsApi } from '../../zalo-accounts/api/zalo-accounts-api';
+import { authApi } from '../../auth/api/auth-api';
 import type { ZaloAccount } from '../../zalo-accounts/types';
-import type { CampaignFormData, MessageCampaignSubmitPayload, PhoneEntry } from '../types';
+import type { CampaignFormData, PhoneEntry } from '../types';
+import { messageCampaignApi } from '../api/message-campaign-api';
 import { validateCampaign } from '../utils/campaign-validation';
 import { CampaignReviewPanel } from './campaign-review-panel';
 import { CampaignSummaryStrip } from './campaign-summary-strip';
@@ -26,10 +28,12 @@ const DEFAULT_FORM: CampaignFormData = {
 
 export function MessageCampaignPanel() {
   const [formData, setFormData] = useState<CampaignFormData>(DEFAULT_FORM);
-  const [phoneEntries, setPhoneEntries] = useState<PhoneEntry[]>([]);
   const [zaloAccounts, setZaloAccounts] = useState<ZaloAccount[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [accountError, setAccountError] = useState('');
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [selectedEntries, setSelectedEntries] = useState<PhoneEntry[]>([]);
+  const [totalContacts, setTotalContacts] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
 
@@ -67,38 +71,56 @@ export function MessageCampaignPanel() {
       ),
     [formData.selectedZaloAccountIds, zaloAccounts],
   );
-  const recipientCount = phoneEntries.length;
-  const validation = validateCampaign(formData, phoneEntries, zaloAccounts);
-  const previewRecipient = phoneEntries[0];
-
-  function buildSubmitPayload(): MessageCampaignSubmitPayload {
-    return {
-      name: formData.campaignName.trim(),
-      messageText: formData.messageContent.trim(),
-      zaloAccountIds: selectedActiveAccounts.map((account) => account.id),
-      recipients: phoneEntries.map((entry) => ({
-        name: entry.zaloName,
-        phoneNumber: entry.inputPhoneNumber,
-        avatarUrl: entry.avatarUrl,
-      })),
-      sending: {
-        delayMinSeconds: formData.delayMinSeconds,
-        delayMaxSeconds: formData.delayMaxSeconds,
-        maxRecipientsPerAccount: formData.maxRecipientsPerAccount,
-        scheduleAt: formData.startMode === 'scheduled' ? new Date(formData.startDate).toISOString() : undefined,
-        skipFailedAccount: formData.skipFailedAccount,
-      },
-    };
-  }
+  const handleTotalChange = useCallback((t: number) => setTotalContacts(t), []);
+  const recipientCount = selectedEntries.length;
+  const validation = validateCampaign(formData, selectedEntries, zaloAccounts);
+  const previewRecipient = selectedEntries[0];
 
   async function handleSubmit() {
     setSubmitting(true);
     setSubmitMessage('');
 
     try {
-      const payload = buildSubmitPayload();
+      const meResponse = await authApi.me();
+      const customerId = meResponse.user.id;
+
+      let imageFilePath: string | undefined;
+      if (formData.imageFile) {
+        const uploadResult = await messageCampaignApi.uploadImage(formData.imageFile);
+        imageFilePath = uploadResult.filePath;
+      }
+
+      const campaign = await messageCampaignApi.createCampaign({
+        customerId,
+        name: formData.campaignName.trim(),
+        messageText: formData.messageContent.trim(),
+        zaloAccountIds: selectedActiveAccounts.map((a) => a.id),
+        recipients: selectedEntries.map((entry) => ({
+          phone: entry.inputPhoneNumber,
+          zaloId: entry.zaloUid,
+          name: entry.zaloName,
+          gender: entry.gender,
+        })),
+        scheduleAt:
+          formData.startMode === 'scheduled'
+            ? new Date(formData.startDate).toISOString()
+            : undefined,
+        imageFilePath,
+      });
+
+      if (formData.startMode === 'now') {
+        await messageCampaignApi.dispatchCampaign(campaign.id);
+        setSubmitMessage(
+          `Chiến dịch "${campaign.name}" đã được tạo và bắt đầu gửi (${campaign.queuedCount} người nhận).`,
+        );
+      } else {
+        setSubmitMessage(
+          `Chiến dịch "${campaign.name}" đã được lên lịch (${campaign.queuedCount} người nhận).`,
+        );
+      }
+    } catch (error) {
       setSubmitMessage(
-        `Payload đã sẵn sàng với ${payload.recipients.length} SĐT hợp lệ. API tạo chiến dịch nhiều tài khoản chưa được kết nối ở frontend.`,
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo chiến dịch.',
       );
     } finally {
       setSubmitting(false);
@@ -109,7 +131,8 @@ export function MessageCampaignPanel() {
     <div className="space-y-5">
       <CampaignSummaryStrip
         selectedAccountCount={selectedActiveAccounts.length}
-        recipientCount={recipientCount}
+        selectedRecipientCount={recipientCount}
+        totalContactCount={totalContacts}
         estimatedDurationLabel={validation.estimatedDurationLabel}
         blockerCount={validation.blockers.length}
       />
@@ -119,7 +142,12 @@ export function MessageCampaignPanel() {
       )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <PhoneListTable entries={phoneEntries} onEntriesChange={setPhoneEntries} />
+        <PhoneListTable
+          selectedIds={selectedContactIds}
+          onSelectedIdsChange={setSelectedContactIds}
+          onSelectedEntriesChange={setSelectedEntries}
+          onTotalChange={handleTotalChange}
+        />
 
         <div className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <ZaloAccountSelector

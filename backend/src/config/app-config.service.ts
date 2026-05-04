@@ -60,4 +60,14 @@ export class AppConfigService {
     const val = process.env['CAMPAIGN_SEND_DELAY_MS'];
     return val ? Number(val) : 2000;
   }
+
+  get zaloHourlySendLimit(): number {
+    const val = process.env['ZALO_HOURLY_SEND_LIMIT'];
+    return val ? Number(val) : 0;
+  }
+
+  get campaignMaxBackoffMs(): number {
+    const val = process.env['CAMPAIGN_MAX_BACKOFF_MS'];
+    return val ? Number(val) : 60000;
+  }
 }

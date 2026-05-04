@@ -6,6 +6,8 @@ export interface PhoneEntry {
   inputPhoneNumber: string;
   zaloName: string;
   avatarUrl: string;
+  zaloUid: string;
+  gender?: number;
 }
 
 export interface CampaignFormData {
@@ -18,6 +20,7 @@ export interface CampaignFormData {
   maxRecipientsPerAccount: number;
   skipFailedAccount: boolean;
   messageContent: string;
+  imageFile?: File;
 }
 
 export interface CampaignRecipientPayload {
@@ -40,16 +43,3 @@ export interface ZaloUsersLookupResponse {
   failedCount: number;
 }
 
-export interface MessageCampaignSubmitPayload {
-  name: string;
-  messageText: string;
-  zaloAccountIds: string[];
-  recipients: CampaignRecipientPayload[];
-  sending: {
-    delayMinSeconds: number;
-    delayMaxSeconds: number;
-    maxRecipientsPerAccount: number;
-    scheduleAt?: string;
-    skipFailedAccount: boolean;
-  };
-}

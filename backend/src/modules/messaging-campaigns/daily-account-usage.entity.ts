@@ -26,6 +26,12 @@ export class DailyAccountUsage {
   @Property({ type: 'int' })
   dailyLimit: number = 50;
 
+  @Property({ type: 'int' })
+  hourlySentCount: number = 0;
+
+  @Property({ type: 'int' })
+  lastHourlyReset: number = -1;
+
   @Property({ type: 'Date', onCreate: () => new Date() })
   createdAt!: Date;
 

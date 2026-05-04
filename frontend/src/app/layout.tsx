@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ZaloCRM",
-  description: "CRM SaaS tool for sales and customer operations.",
+  title: "ZaloMKT",
+  description: "MKT SaaS tool for sales and customer operations.",
 };
 
 interface RootLayoutProps {

@@ -47,7 +47,7 @@ export function LoginPanel() {
               Z
             </span>
             <span className="pr-4 text-sm font-medium text-white/90">
-              ZaloCRM
+              ZaloMKT
             </span>
           </div>
 
@@ -57,7 +57,7 @@ export function LoginPanel() {
             </h1>
             <p className="mt-7 max-w-xl text-base leading-8 text-white/70 md:text-lg">
               Đăng nhập để tiếp tục vận hành pipeline, chăm sóc khách hàng và
-              theo dõi hiệu suất đội ngũ từ một giao diện CRM thống nhất.
+              theo dõi hiệu suất đội ngũ từ một giao diện MKT thống nhất.
             </p>
           </div>
 
@@ -69,7 +69,7 @@ export function LoginPanel() {
               >
                 <div className="min-h-24 rounded-[calc(1.35rem-0.25rem)] bg-white/[0.045] px-4 py-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)]">
                   <span className="block text-[11px] font-medium uppercase text-[#9bd8ff]">
-                    CRM
+                    MKT
                   </span>
                   <p className="mt-3 text-sm leading-5 text-white/80">{signal}</p>
                 </div>
@@ -90,7 +90,7 @@ export function LoginPanel() {
                     Đăng nhập
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-white/60">
-                    Truy cập hệ thống ZaloCRM bằng tài khoản đã được cấp.
+                    Truy cập hệ thống ZaloMKT bằng tài khoản đã được cấp.
                   </p>
                 </div>
               </div>
@@ -157,13 +157,15 @@ export function LoginPanel() {
               </form>
 
               <p className="mt-6 text-center text-sm text-[#64748b]">
-                Chưa có tài khoản?{' '}
-                <Link
+                Liên hệ Zalo:{' '}
+                <a
                   className="font-semibold text-[#0b1220] underline decoration-[#0068ff]/50 underline-offset-4 transition-[color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-[#0068ff]"
-                  href="/register"
+                  href="https://zalo.me/0901267368"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  Tạo tài khoản
-                </Link>
+                  0901267368
+                </a>
               </p>
             </div>
           </div>

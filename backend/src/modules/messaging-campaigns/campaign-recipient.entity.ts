@@ -33,6 +33,9 @@ export class CampaignRecipient {
   @Property({ type: 'string', nullable: true })
   recipientName?: string;
 
+  @Property({ type: 'smallint', nullable: true })
+  recipientGender?: number;
+
   @Enum({ items: () => ['queued', 'sending', 'sent', 'failed', 'skipped'] })
   status!: RecipientStatus;
 
@@ -63,12 +66,14 @@ export class CampaignRecipient {
     recipientPhone: string,
     recipientZaloId?: string,
     recipientName?: string,
+    recipientGender?: number,
   ) {
     this.id = uuidv4();
     this.campaign = campaign;
     this.recipientPhone = recipientPhone;
     this.recipientZaloId = recipientZaloId;
     this.recipientName = recipientName;
+    this.recipientGender = recipientGender;
     this.status = 'queued';
     this.createdAt = new Date();
     this.updatedAt = new Date();

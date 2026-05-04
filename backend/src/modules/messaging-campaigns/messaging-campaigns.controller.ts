@@ -5,9 +5,15 @@ import {
   Param,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags, ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiCookieAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { randomUUID } from 'crypto';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../common/auth/roles.guard';
 import { CreateMessagingCampaignDto } from './dto/create-messaging-campaign.dto';
@@ -26,8 +32,34 @@ export class MessagingCampaignsController {
     private readonly campaignStatsService: CampaignStatsService,
   ) {}
 
+  @Post('upload-image')
+  @Roles('admin', 'customer')
+  @ApiOperation({ summary: 'Upload a campaign image' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'campaign-images'),
+        filename: (_req, file, cb) => {
+          const uniqueName = `${randomUUID()}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new Error('Only image files are allowed'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadImage(@UploadedFile() file: Express.Multer.File) {
+    return { filePath: file.path };
+  }
+
   @Post()
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'Create a messaging campaign' })
   createCampaign(@Body() dto: CreateMessagingCampaignDto) {
     return this.messagingCampaignsService.createCampaign(
@@ -37,32 +69,33 @@ export class MessagingCampaignsController {
       dto.zaloAccountIds,
       dto.recipients,
       dto.scheduleAt ? new Date(dto.scheduleAt) : undefined,
+      dto.imageFilePath,
     );
   }
 
   @Get()
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'List messaging campaigns' })
   listCampaigns(@Query('customerId') customerId?: string) {
     return this.messagingCampaignsService.listCampaigns(customerId);
   }
 
   @Get(':campaignId')
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'Get a campaign by ID' })
   getCampaign(@Param('campaignId') campaignId: string) {
     return this.messagingCampaignsService.findById(campaignId);
   }
 
   @Get(':campaignId/stats')
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'Get campaign stats' })
   getCampaignStats(@Param('campaignId') campaignId: string) {
     return this.campaignStatsService.getCampaignStats(campaignId);
   }
 
   @Get(':campaignId/recipients')
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'List campaign recipients' })
   getRecipients(
     @Param('campaignId') campaignId: string,
@@ -78,21 +111,21 @@ export class MessagingCampaignsController {
   }
 
   @Post(':campaignId/dispatch')
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'Dispatch a campaign' })
   dispatchCampaign(@Param('campaignId') campaignId: string) {
     return this.campaignDispatchService.startDispatch(campaignId);
   }
 
   @Post(':campaignId/pause')
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'Pause a sending campaign' })
   pauseCampaign(@Param('campaignId') campaignId: string) {
     return this.messagingCampaignsService.pauseCampaign(campaignId);
   }
 
   @Post(':campaignId/resume')
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'Resume a paused campaign and restart dispatch' })
   async resumeCampaign(@Param('campaignId') campaignId: string) {
     await this.messagingCampaignsService.resumeCampaign(campaignId);
@@ -100,7 +133,7 @@ export class MessagingCampaignsController {
   }
 
   @Post(':campaignId/cancel')
-  @Roles('admin')
+  @Roles('admin', 'customer')
   @ApiOperation({ summary: 'Cancel a campaign' })
   cancelCampaign(@Param('campaignId') campaignId: string) {
     return this.messagingCampaignsService.cancelCampaign(campaignId);

@@ -1,6 +1,6 @@
-# ZaloCRM Frontend
+# ZaloMKT Frontend
 
-Next.js 16 App Router frontend for a CRM SaaS tool. The app is structured to consume a NestJS API through feature-level service modules.
+Next.js 16 App Router frontend for a MKT SaaS tool. The app is structured to consume a NestJS API through feature-level service modules.
 
 ## Scripts
 
@@ -16,7 +16,7 @@ pnpm start
 ```text
 src/
   app/
-    (dashboard)/       # authenticated CRM app routes
+    (dashboard)/       # authenticated MKT app routes
     (public)/          # public/auth routes
     layout.tsx         # root HTML shell
     page.tsx           # redirects to /dashboard
@@ -47,4 +47,4 @@ Prefer `NEST_API_BASE_URL` for server-side calls. Keep endpoint wrappers inside 
 - Route files stay thin; feature logic lives under `src/features`.
 - API calls go through `src/lib/api/api-client.ts`.
 - Shared UI goes in `src/components`; domain UI stays in its feature.
-- Add new CRM modules as `src/features/{module}/api`, `components`, `helpers`, `hooks`, and `types` when contracts are known.
+- Add new MKT modules as `src/features/{module}/api`, `components`, `helpers`, `hooks`, and `types` when contracts are known.

@@ -14,33 +14,88 @@ export class QuotaService {
     private readonly usageRepo: EntityRepository<DailyAccountUsage>,
   ) {}
 
-  async canSend(zaloAccountId: string): Promise<boolean> {
-    const usage = await this.getOrCreateTodayUsage(zaloAccountId);
-    return usage.autoSentCount < usage.dailyLimit;
+  async canSend(zaloAccountId: string, em?: EntityManager): Promise<boolean> {
+    const usage = await this.getOrCreateTodayUsage(zaloAccountId, em);
+    if (usage.autoSentCount >= usage.dailyLimit) return false;
+
+    const hourlyLimit = this.appConfig.zaloHourlySendLimit;
+    if (hourlyLimit > 0) {
+      this.resetHourlyIfNeeded(usage);
+      if (usage.hourlySentCount >= hourlyLimit) return false;
+    }
+
+    return true;
   }
 
-  async incrementDailySent(zaloAccountId: string): Promise<void> {
-    const usage = await this.getOrCreateTodayUsage(zaloAccountId);
+  async incrementDailySent(zaloAccountId: string, em?: EntityManager): Promise<void> {
+    const effectiveEm = em ?? this.em;
+    const usage = await this.getOrCreateTodayUsage(zaloAccountId, em);
     usage.autoSentCount += 1;
-    await this.em.flush();
+
+    const hourlyLimit = this.appConfig.zaloHourlySendLimit;
+    if (hourlyLimit > 0) {
+      this.resetHourlyIfNeeded(usage);
+      usage.hourlySentCount += 1;
+    }
+
+    await effectiveEm.flush();
   }
 
-  async getRemainingQuota(zaloAccountId: string): Promise<number> {
-    const usage = await this.getOrCreateTodayUsage(zaloAccountId);
+  private resetHourlyIfNeeded(usage: DailyAccountUsage): void {
+    const currentHour = new Date().getUTCHours();
+    if (usage.lastHourlyReset !== currentHour) {
+      usage.hourlySentCount = 0;
+      usage.lastHourlyReset = currentHour;
+    }
+  }
+
+  async getRemainingQuota(zaloAccountId: string, em?: EntityManager): Promise<number> {
+    const usage = await this.getOrCreateTodayUsage(zaloAccountId, em);
     return Math.max(0, usage.dailyLimit - usage.autoSentCount);
+  }
+
+  async getLeastUsedAccountId(accountIds: string[], em?: EntityManager): Promise<string | null> {
+    if (accountIds.length === 0) return null;
+    if (accountIds.length === 1) return accountIds[0];
+
+    const effectiveEm = em ?? this.em;
+    const today = new Date().toISOString().slice(0, 10);
+    const usages = await effectiveEm.find(DailyAccountUsage, {
+      zaloAccount: { id: { $in: accountIds } },
+      date: today,
+    });
+
+    const usageMap = new Map(
+      usages.map((u) => [u.zaloAccount.id, u.autoSentCount]),
+    );
+
+    let leastId = accountIds[0];
+    let leastCount = usageMap.get(leastId) ?? 0;
+
+    for (let i = 1; i < accountIds.length; i++) {
+      const count = usageMap.get(accountIds[i]) ?? 0;
+      if (count < leastCount) {
+        leastCount = count;
+        leastId = accountIds[i];
+      }
+    }
+
+    return leastId;
   }
 
   private async getOrCreateTodayUsage(
     zaloAccountId: string,
+    em?: EntityManager,
   ): Promise<DailyAccountUsage> {
+    const effectiveEm = em ?? this.em;
     const today = new Date().toISOString().slice(0, 10);
-    let usage = await this.usageRepo.findOne({
+    let usage = await effectiveEm.findOne(DailyAccountUsage, {
       zaloAccount: { id: zaloAccountId },
       date: today,
     });
 
     if (!usage) {
-      const zaloAccount = await this.em.findOneOrFail(ZaloAccount, {
+      const zaloAccount = await effectiveEm.findOneOrFail(ZaloAccount, {
         id: zaloAccountId,
       });
       usage = new DailyAccountUsage(
@@ -48,8 +103,8 @@ export class QuotaService {
         today,
         this.appConfig.zaloDailySendLimit,
       );
-      this.em.persist(usage);
-      await this.em.flush();
+      effectiveEm.persist(usage);
+      await effectiveEm.flush();
     }
 
     return usage;

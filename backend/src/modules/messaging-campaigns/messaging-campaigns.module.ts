@@ -10,6 +10,7 @@ import { MessagingCampaignsService } from './messaging-campaigns.service';
 import { QuotaService } from './quota.service';
 import { CampaignDispatchService } from './campaign-dispatch.service';
 import { CampaignStatsService } from './campaign-stats.service';
+import { CampaignSchedulerService } from './campaign-scheduler.service';
 import { MessagingCampaign } from './messaging-campaign.entity';
 import { CampaignZaloAccount } from './campaign-zalo-account.entity';
 import { CampaignRecipient } from './campaign-recipient.entity';
@@ -37,6 +38,7 @@ import { DailyAccountUsage } from './daily-account-usage.entity';
     QuotaService,
     CampaignDispatchService,
     CampaignStatsService,
+    CampaignSchedulerService,
   ],
 })
 export class MessagingCampaignsModule {}

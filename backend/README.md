@@ -1,4 +1,4 @@
-# ZaloCRM Backend
+# ZaloMKT Backend
 
 NestJS backend scaffold for a customer-facing Zalo messaging tool.
 

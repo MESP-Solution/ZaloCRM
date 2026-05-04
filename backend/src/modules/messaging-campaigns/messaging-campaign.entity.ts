@@ -12,6 +12,7 @@ export type MessagingCampaignStatus =
   | 'draft'
   | 'queued'
   | 'sending'
+  | 'paused_manual'
   | 'paused_quota_exhausted'
   | 'paused_no_available_account'
   | 'completed'
@@ -37,6 +38,7 @@ export class MessagingCampaign {
       'draft',
       'queued',
       'sending',
+      'paused_manual',
       'paused_quota_exhausted',
       'paused_no_available_account',
       'completed',
@@ -45,6 +47,9 @@ export class MessagingCampaign {
     ],
   })
   status!: MessagingCampaignStatus;
+
+  @Property({ type: 'string', nullable: true })
+  imageFilePath?: string;
 
   @Property({ type: 'Date', nullable: true })
   scheduleAt?: Date;

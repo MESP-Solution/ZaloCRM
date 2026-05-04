@@ -1,4 +1,4 @@
-# ZaloCRM
+# ZaloMKT
 
 Backend service built with NestJS.
 

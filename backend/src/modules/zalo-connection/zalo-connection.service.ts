@@ -11,6 +11,8 @@ import {
 import { Zalo } from 'zca-js';
 import type { API, Credentials, FindUserResponse } from 'zca-js';
 import nodefetch from 'node-fetch';
+import { imageSize } from 'image-size';
+import { readFile, stat } from 'fs/promises';
 import { ZaloConnectionRegistry } from './zalo-connection-registry';
 import { ZaloAccountsService } from '../zalo-accounts/zalo-accounts.service';
 import {
@@ -192,6 +194,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
       uid: string;
       zalo_name: string;
       display_name: string;
+      gender?: number;
     }[];
     failedCount: number;
   }> {
@@ -202,6 +205,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
       uid: string;
       zalo_name: string;
       display_name: string;
+      gender?: number;
     }[] = [];
     let failedCount = 0;
 
@@ -219,6 +223,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
           uid: response.uid,
           zalo_name: response.zalo_name,
           display_name: response.display_name,
+          gender: typeof response.gender === 'number' ? response.gender : undefined,
         });
       } catch {
         failedCount += 1;
@@ -297,7 +302,9 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
   }
 
   private createZaloInstance(proxyUrl?: string): InstanceType<typeof Zalo> {
-    const zaloOptions: Record<string, unknown> = {};
+    const zaloOptions: Record<string, unknown> = {
+      imageMetadataGetter: this.imageMetadataGetter,
+    };
     if (proxyUrl) {
       const agent = this.proxyService.createAgent(proxyUrl);
       zaloOptions.agent = agent;
@@ -305,6 +312,24 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     }
     return new Zalo(zaloOptions);
   }
+
+  private imageMetadataGetter = async (filePath: string) => {
+    try {
+      const [buffer, fileStat] = await Promise.all([
+        readFile(filePath),
+        stat(filePath),
+      ]);
+      const dimensions = imageSize(buffer);
+      if (!dimensions.width || !dimensions.height) return null;
+      return {
+        width: dimensions.width,
+        height: dimensions.height,
+        size: fileStat.size,
+      };
+    } catch {
+      return null;
+    }
+  };
 
   private async handleLoginSuccess(
     accountId: string,

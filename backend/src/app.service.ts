@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 export class AppService {
   getHealth() {
     return {
-      name: 'ZaloCRM Backend',
+      name: 'ZaloMKT Backend',
       status: 'ok',
       timestamp: new Date().toISOString(),
     };

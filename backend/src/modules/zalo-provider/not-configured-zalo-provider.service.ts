@@ -14,4 +14,11 @@ export class NotConfiguredZaloProviderService implements ZaloProviderPort {
       'Zalo provider is not configured yet',
     );
   }
+
+  async findUser(
+    _zaloAccountId: string,
+    _phoneNumber: string,
+  ): Promise<string | null> {
+    return null;
+  }
 }

@@ -11,7 +11,7 @@ export default function NotFoundPage() {
           Trang khong ton tai
         </h1>
         <p className="mt-3 text-sm leading-6 text-gray-600">
-          Kiem tra lai duong dan hoac quay ve dashboard CRM.
+          Kiem tra lai duong dan hoac quay ve dashboard MKT.
         </p>
         <Link
           className="mt-6 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"

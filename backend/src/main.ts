@@ -38,8 +38,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('ZaloCRM API')
-    .setDescription('API for ZaloCRM - Customer operations and Zalo messaging')
+    .setTitle('ZaloMKT API')
+    .setDescription('API for ZaloMKT - Customer operations and Zalo messaging')
     .setVersion('1.0')
     .addCookieAuth(
       'access_token',

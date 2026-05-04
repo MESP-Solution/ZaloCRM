@@ -1,4 +1,8 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ThreadType } from 'zca-js';
 import { ZaloProviderPort } from './zalo-provider.port';
 import {
@@ -10,6 +14,8 @@ import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ZaloProviderLiveService implements ZaloProviderPort {
+  private readonly logger = new Logger(ZaloProviderLiveService.name);
+
   constructor(private readonly registry: ZaloConnectionRegistry) {}
 
   async sendMessage(
@@ -22,11 +28,73 @@ export class ZaloProviderLiveService implements ZaloProviderPort {
       );
     }
 
-    await api.sendMessage(command.text, command.recipientId, ThreadType.User);
+    const message = command.imageFilePath
+      ? { msg: command.text, attachments: command.imageFilePath }
+      : command.text;
+
+    const response = await api.sendMessage(
+      message,
+      command.recipientId,
+      ThreadType.User,
+    );
+
+    const providerMessageId = this.extractMessageId(response);
 
     return {
-      providerMessageId: randomUUID(),
+      providerMessageId,
       sentAt: new Date(),
     };
+  }
+
+  async findUser(
+    zaloAccountId: string,
+    phoneNumber: string,
+  ): Promise<string | null> {
+    const api = this.registry.getApi(zaloAccountId);
+    if (!api) return null;
+
+    try {
+      const response = await api.findUser(phoneNumber);
+      if (
+        typeof response === 'object' &&
+        response !== null &&
+        'uid' in response &&
+        typeof (response as Record<string, unknown>).uid === 'string'
+      ) {
+        return (response as Record<string, unknown>).uid as string;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private extractMessageId(response: unknown): string {
+    if (typeof response !== 'object' || response === null) {
+      return this.fallbackMessageId();
+    }
+
+    const res = response as Record<string, unknown>;
+
+    // zca-js returns { message: { msgId: number } | null, attachment: [...] }
+    if (
+      typeof res.message === 'object' &&
+      res.message !== null &&
+      'msgId' in (res.message as Record<string, unknown>)
+    ) {
+      const msgId = (res.message as Record<string, unknown>).msgId;
+      if (typeof msgId === 'number' || typeof msgId === 'string') {
+        return String(msgId);
+      }
+    }
+
+    return this.fallbackMessageId();
+  }
+
+  private fallbackMessageId(): string {
+    this.logger.warn(
+      'Could not extract msgId from sendMessage response, using fallback UUID',
+    );
+    return randomUUID();
   }
 }

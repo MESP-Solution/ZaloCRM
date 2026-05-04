@@ -39,12 +39,12 @@ export function RegisterPanel() {
           <span className="flex size-10 items-center justify-center rounded-lg bg-blue-500 text-sm font-bold">
             Z
           </span>
-          <span className="text-lg font-semibold">ZaloCRM</span>
+          <span className="text-lg font-semibold">ZaloMKT</span>
         </div>
 
         <div className="max-w-2xl py-20">
           <p className="text-sm font-medium uppercase tracking-[0.22em] text-blue-200">
-            CRM SaaS tool
+            MKT SaaS tool
           </p>
           <h1 className="mt-5 text-4xl font-semibold leading-tight md:text-6xl">
             Quan ly lead, deal va khach hang trong mot he thong gon.
@@ -59,7 +59,7 @@ export function RegisterPanel() {
         <div className="w-full max-w-md">
           <h2 className="text-2xl font-semibold">Tao tai khoan</h2>
           <p className="mt-2 text-sm text-gray-500">
-            Tren he thong ZaloCRM.
+            Tren he thong ZaloMKT.
           </p>
 
           {error && (

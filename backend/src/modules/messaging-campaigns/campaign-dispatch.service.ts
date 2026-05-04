@@ -3,6 +3,7 @@ import {
   Logger,
   BadRequestException,
   Inject,
+  OnModuleInit,
 } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { MessagingCampaign } from './messaging-campaign.entity';
@@ -13,11 +14,13 @@ import { QuotaService } from './quota.service';
 import { ZALO_PROVIDER } from '../zalo-provider/zalo-provider.port';
 import type { ZaloProviderPort } from '../zalo-provider/zalo-provider.port';
 import { AppConfigService } from '../../config/app-config.service';
+import { resolveMessagePlaceholders } from './resolve-message-placeholders';
 
 @Injectable()
-export class CampaignDispatchService {
+export class CampaignDispatchService implements OnModuleInit {
   private readonly logger = new Logger(CampaignDispatchService.name);
   private readonly activeDispatches = new Set<string>();
+  private readonly accountBackoff = new Map<string, number>();
 
   constructor(
     private readonly em: EntityManager,
@@ -27,18 +30,48 @@ export class CampaignDispatchService {
     private readonly appConfig: AppConfigService,
   ) {}
 
+  async onModuleInit(): Promise<void> {
+    const em = this.em.fork();
+    const stuckCampaigns = await em.find(MessagingCampaign, {
+      status: 'sending',
+    });
+
+    if (stuckCampaigns.length === 0) return;
+
+    this.logger.log(
+      `Recovering ${stuckCampaigns.length} stuck campaign(s) from previous run`,
+    );
+
+    for (const campaign of stuckCampaigns) {
+      try {
+        campaign.status = 'queued';
+        campaign.updatedAt = new Date();
+        await em.flush();
+        await this.startDispatch(campaign.id);
+        this.logger.log(`Resumed dispatch for campaign ${campaign.id}`);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `Failed to resume campaign ${campaign.id}: ${message}`,
+        );
+      }
+    }
+  }
+
   async startDispatch(campaignId: string): Promise<{ message: string }> {
     if (this.activeDispatches.has(campaignId)) {
       throw new BadRequestException('Campaign is already being dispatched');
     }
 
-    const campaign = await this.em.findOneOrFail(MessagingCampaign, {
+    const em = this.em.fork();
+    const campaign = await em.findOneOrFail(MessagingCampaign, {
       id: campaignId,
     });
 
     const validStatuses = [
       'draft',
       'queued',
+      'paused_manual',
       'paused_quota_exhausted',
       'paused_no_available_account',
     ];
@@ -48,11 +81,16 @@ export class CampaignDispatchService {
       );
     }
 
+    this.activeDispatches.add(campaignId);
+
     campaign.status = 'sending';
     campaign.updatedAt = new Date();
-    await this.em.flush();
-
-    this.activeDispatches.add(campaignId);
+    try {
+      await em.flush();
+    } catch (error) {
+      this.activeDispatches.delete(campaignId);
+      throw error;
+    }
 
     this.dispatchLoop(campaignId)
       .catch((err: unknown) => {
@@ -156,6 +194,24 @@ export class CampaignDispatchService {
     | 'paused_quota_exhausted'
     | 'paused_no_available_account'
   > {
+    if (!recipient.recipientZaloId && recipient.recipientPhone) {
+      const activeAccountIds = accounts
+        .filter((a) => a.status === 'active')
+        .map((a) => a.zaloAccount.id);
+      const lookupAccountId =
+        await this.quotaService.getLeastUsedAccountId(activeAccountIds, em);
+      if (lookupAccountId) {
+        const resolvedUid = await this.zaloProvider.findUser(
+          lookupAccountId,
+          recipient.recipientPhone,
+        );
+        if (resolvedUid) {
+          recipient.recipientZaloId = resolvedUid;
+          await em.flush();
+        }
+      }
+    }
+
     if (!recipient.recipientZaloId) {
       recipient.status = 'skipped';
       recipient.errorMessage = 'No Zalo ID resolved for this phone number';
@@ -168,6 +224,15 @@ export class CampaignDispatchService {
     await em.flush();
 
     const activeAccounts = accounts.filter((a) => a.status === 'active');
+    const leastUsedId = await this.quotaService.getLeastUsedAccountId(
+      activeAccounts.map((a) => a.zaloAccount.id),
+      em,
+    );
+    if (leastUsedId) {
+      activeAccounts.sort((a, b) =>
+        a.zaloAccount.id === leastUsedId ? -1 : b.zaloAccount.id === leastUsedId ? 1 : 0,
+      );
+    }
 
     if (activeAccounts.length === 0) {
       const allQuotaExhausted = accounts.every(
@@ -185,6 +250,7 @@ export class CampaignDispatchService {
     for (const campaignAccount of activeAccounts) {
       const canSend = await this.quotaService.canSend(
         campaignAccount.zaloAccount.id,
+        em,
       );
 
       if (!canSend) {
@@ -212,6 +278,7 @@ export class CampaignDispatchService {
         campaign.sentCount += 1;
         await this.quotaService.incrementDailySent(
           campaignAccount.zaloAccount.id,
+          em,
         );
         return 'sent';
       }
@@ -246,23 +313,59 @@ export class CampaignDispatchService {
       attemptNumber,
     );
 
+    const accountId = campaignAccount.zaloAccount.id;
+    const backoffMs = this.accountBackoff.get(accountId) ?? 0;
+    if (backoffMs > 0) {
+      await this.sleep(backoffMs);
+    }
+
     try {
+      const resolvedText = resolveMessagePlaceholders(campaign.messageText, recipient);
       const result = await this.zaloProvider.sendMessage({
-        zaloAccountId: campaignAccount.zaloAccount.id,
+        zaloAccountId: accountId,
         recipientId: recipient.recipientZaloId!,
-        text: campaign.messageText,
+        text: resolvedText,
         campaignId: campaign.id,
+        imageFilePath: campaign.imageFilePath,
       });
       attempt.status = 'sent';
       attempt.providerMessageId = result.providerMessageId;
+      this.accountBackoff.delete(accountId);
     } catch (error: unknown) {
       attempt.status = 'failed';
-      attempt.errorMessage =
+      const errorMsg =
         error instanceof Error ? error.message : String(error);
+      attempt.errorMessage = errorMsg;
 
-      if (error instanceof Error && error.message.includes('not connected')) {
+      const lowerMsg = errorMsg.toLowerCase();
+
+      if (lowerMsg.includes('not connected')) {
         campaignAccount.status = 'disconnected';
         campaignAccount.updatedAt = new Date();
+      } else if (
+        lowerMsg.includes('restricted') ||
+        lowerMsg.includes('banned') ||
+        lowerMsg.includes('blocked')
+      ) {
+        campaignAccount.status = 'restricted';
+        campaignAccount.updatedAt = new Date();
+      }
+
+      if (
+        lowerMsg.includes('rate') ||
+        lowerMsg.includes('limit') ||
+        lowerMsg.includes('spam') ||
+        lowerMsg.includes('too many')
+      ) {
+        const currentBackoff = this.accountBackoff.get(accountId) || Math.max(this.appConfig.campaignSendDelayMs, 1000);
+        const nextBackoff = Math.min(
+          currentBackoff * 2,
+          this.appConfig.campaignMaxBackoffMs,
+        );
+        this.accountBackoff.set(accountId, nextBackoff);
+        this.logger.warn(
+          `Rate-limit detected for account ${accountId}, backoff=${nextBackoff}ms`,
+        );
       }
     }
 

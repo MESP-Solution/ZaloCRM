@@ -6,7 +6,7 @@ export function DashboardOverview() {
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-700">
-            CRM overview
+            MKT overview
           </p>
           <h1 className="mt-2 text-3xl font-semibold text-gray-950">
             Sales command center

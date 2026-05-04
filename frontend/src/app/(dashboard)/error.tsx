@@ -12,7 +12,7 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
         Error
       </p>
       <h1 className="mt-3 text-2xl font-semibold text-gray-950">
-        Khong the tai CRM
+        Khong the tai MKT
       </h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
         {error.message || "Unexpected dashboard error."}

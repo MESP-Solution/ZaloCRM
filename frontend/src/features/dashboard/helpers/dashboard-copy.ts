@@ -2,7 +2,7 @@ export const dashboardCards = [
   {
     label: "Open leads",
     value: "0",
-    hint: "Connect `/crm/leads` from NestJS.",
+    hint: "Connect `/MKT/leads` from NestJS.",
   },
   {
     label: "Active deals",

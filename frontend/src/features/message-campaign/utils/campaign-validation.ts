@@ -52,7 +52,7 @@ export function validateCampaign(
   }
 
   if (selectedRecipients.length === 0) {
-    blockers.push('Cần ít nhất 1 SĐT đã thêm.');
+    blockers.push('Chọn ít nhất 1 người nhận từ danh sách SĐT.');
   }
 
   if (!isPositiveInteger(formData.delayMinSeconds) || !isPositiveInteger(formData.delayMaxSeconds)) {

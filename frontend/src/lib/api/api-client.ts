@@ -5,20 +5,10 @@ import { ApiError } from './api-error';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export const authConfig = {
-  cookieName: process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME ?? 'access_token',
-};
-
 interface ApiRequestOptions extends Omit<RequestInit, 'body' | 'method'> {
   accessToken?: string;
   body?: unknown;
   method?: HttpMethod;
-}
-
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.split('; ').find((row) => row.startsWith(`${name}=`));
-  return match ? decodeURIComponent(match.split('=')[1]) : undefined;
 }
 
 function createApiUrl(path: string): string {
@@ -34,9 +24,8 @@ function createHeaders(options: ApiRequestOptions): Headers {
     headers.set('content-type', 'application/json');
   }
 
-  const token = options.accessToken ?? getCookie(authConfig.cookieName);
-  if (token) {
-    headers.set('authorization', `Bearer ${token}`);
+  if (options.accessToken) {
+    headers.set('authorization', `Bearer ${options.accessToken}`);
   }
 
   return headers;

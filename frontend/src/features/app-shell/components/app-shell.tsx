@@ -33,7 +33,7 @@ export function AppShell({ children }: AppShellProps) {
     for (const [route, title] of Object.entries(titles)) {
       if (path === route || path.startsWith(route + '/')) return title;
     }
-    return 'ZaloCRM';
+    return 'ZaloMKT';
   }
 
   function getPageDescription(path: string): string {

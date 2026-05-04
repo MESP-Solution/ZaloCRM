@@ -7,8 +7,8 @@ export function AppLogo() {
         Z
       </span>
       <span className="leading-tight">
-        <span className="block text-sm font-semibold text-gray-950">ZaloCRM</span>
-        <span className="block text-xs text-gray-500">Sales CRM</span>
+        <span className="block text-sm font-semibold text-gray-950">ZaloMKT</span>
+        <span className="block text-xs text-gray-500">Sales MKT</span>
       </span>
     </Link>
   );
