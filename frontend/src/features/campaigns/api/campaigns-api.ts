@@ -60,4 +60,10 @@ export const campaignsApi = {
       { method: 'POST' },
     );
   },
+
+  async deleteCampaign(campaignId: string): Promise<void> {
+    await apiClient(`/messaging-campaigns/${campaignId}`, {
+      method: 'DELETE',
+    });
+  },
 };

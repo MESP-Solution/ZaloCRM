@@ -63,10 +63,10 @@ export class MessagingCampaign {
   @Property({ type: 'int' })
   failedCount: number = 0;
 
-  @Property({ type: 'Date' })
+  @Property({ type: 'Date', onCreate: () => new Date() })
   createdAt!: Date;
 
-  @Property({ type: 'Date' })
+  @Property({ type: 'Date', onCreate: () => new Date(), onUpdate: () => new Date() })
   updatedAt!: Date;
 
   constructor(customer: CustomerAccount, name: string, messageText: string) {
@@ -75,7 +75,5 @@ export class MessagingCampaign {
     this.name = name;
     this.messageText = messageText;
     this.status = 'draft';
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
   }
 }

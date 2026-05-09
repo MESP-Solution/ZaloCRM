@@ -119,7 +119,7 @@ export function CampaignDetailPanel({ campaignId }: Props) {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         <CampaignRecipientsTable campaignId={campaignId} refreshKey={refreshKey} />
         <div className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          <CampaignStatsCard campaign={campaign} />
+          <CampaignStatsCard campaign={campaign} refreshKey={refreshKey} />
           <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
             <div><strong>Ngày tạo:</strong> {new Date(campaign.createdAt).toLocaleString('vi-VN')}</div>
             {campaign.scheduleAt && (

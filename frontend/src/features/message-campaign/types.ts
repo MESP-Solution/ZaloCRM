@@ -15,10 +15,6 @@ export interface CampaignFormData {
   selectedZaloAccountIds: string[];
   startMode: CampaignStartMode;
   startDate: string;
-  delayMinSeconds: number;
-  delayMaxSeconds: number;
-  maxRecipientsPerAccount: number;
-  skipFailedAccount: boolean;
   messageContent: string;
   imageFile?: File;
 }

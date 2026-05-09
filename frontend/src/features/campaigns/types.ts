@@ -21,20 +21,32 @@ export interface Campaign {
   updatedAt: string;
 }
 
+export interface CampaignAccountStats {
+  accountId: string;
+  displayName: string;
+  status: string;
+  sentCount: number;
+  failedAttempts: number;
+  remainingQuota: number;
+  dailyLimit: number;
+}
+
 export interface CampaignStats {
   totalRecipients: number;
   sent: number;
   failed: number;
-  pending: number;
+  queued: number;
+  skipped: number;
+  sending: number;
+  accounts: CampaignAccountStats[];
 }
 
 export interface CampaignRecipient {
   id: string;
-  phone: string;
-  zaloId?: string;
-  name?: string;
+  recipientPhone?: string;
+  recipientZaloId?: string;
+  recipientName?: string;
   status: string;
-  sentAt?: string;
   errorMessage?: string;
 }
 

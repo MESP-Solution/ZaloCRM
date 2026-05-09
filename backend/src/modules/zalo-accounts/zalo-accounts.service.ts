@@ -3,6 +3,10 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { ZaloAccount, ZaloAccountStatus } from './zalo-account.entity';
 import { CustomerAccount } from '../customers/customer-account.entity';
+import { DailyAccountUsage } from '../messaging-campaigns/daily-account-usage.entity';
+import { DeliveryAttempt } from '../messaging-campaigns/delivery-attempt.entity';
+import { CampaignZaloAccount } from '../messaging-campaigns/campaign-zalo-account.entity';
+import { CampaignRecipient } from '../messaging-campaigns/campaign-recipient.entity';
 
 @Injectable()
 export class ZaloAccountsService {
@@ -96,6 +100,21 @@ export class ZaloAccountsService {
   async deleteAccount(accountId: string): Promise<void> {
     const fork = this.em.fork();
     const account = await fork.findOneOrFail(ZaloAccount, { id: accountId });
+
+    const dailyUsages = await fork.find(DailyAccountUsage, { zaloAccount: account });
+    for (const u of dailyUsages) fork.remove(u);
+
+    const deliveryAttempts = await fork.find(DeliveryAttempt, { zaloAccount: account });
+    for (const a of deliveryAttempts) fork.remove(a);
+
+    const campaignAccounts = await fork.find(CampaignZaloAccount, { zaloAccount: account });
+    for (const ca of campaignAccounts) fork.remove(ca);
+
+    const sentRecipients = await fork.find(CampaignRecipient, { sentByZaloAccount: account });
+    for (const r of sentRecipients) {
+      r.sentByZaloAccount = undefined;
+    }
+
     fork.remove(account);
     await fork.flush();
   }

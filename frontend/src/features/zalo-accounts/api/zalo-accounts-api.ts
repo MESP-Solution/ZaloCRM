@@ -43,6 +43,12 @@ export const zaloAccountsApi = {
     );
   },
 
+  getQuota() {
+    return apiClient<{ accountId: string; used: number; dailyLimit: number }[]>(
+      '/zalo-accounts/quota',
+    );
+  },
+
   loginWithCookie(data: LoginWithCookieRequest) {
     return apiClient<{ success: boolean; accountId: string; message: string }>(
       '/zalo-connections/login-cookie',

@@ -72,7 +72,5 @@ export class ZaloAccount {
     this.customer = customer;
     this.displayName = displayName;
     this.status = 'pending_login';
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
   }
 }

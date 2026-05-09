@@ -11,6 +11,7 @@ import { MessagingCampaignsModule } from './modules/messaging-campaigns/messagin
 import { RolesModule } from './modules/roles/roles.module';
 import { ZaloAccountsModule } from './modules/zalo-accounts/zalo-accounts.module';
 import { ZaloConnectionModule } from './modules/zalo-connection/zalo-connection.module';
+import { ZaloGroupsModule } from './modules/zalo-groups/zalo-groups.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ZaloConnectionModule } from './modules/zalo-connection/zalo-connection.
     ZaloConnectionModule,
     CustomerContactsModule,
     MessagingCampaignsModule,
+    ZaloGroupsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

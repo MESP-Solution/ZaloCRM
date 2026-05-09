@@ -58,8 +58,8 @@ export function CampaignRecipientsTable({ campaignId, refreshKey }: Props) {
           <table className="w-full min-w-[500px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">SĐT</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Tên</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">SĐT / Zalo ID</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Trạng thái</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Lỗi</th>
               </tr>
@@ -67,8 +67,8 @@ export function CampaignRecipientsTable({ campaignId, refreshKey }: Props) {
             <tbody className="divide-y divide-gray-100">
               {recipients.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-4 py-2 text-sm text-gray-900">{r.phone}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{r.name || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-900">{r.recipientName || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{r.recipientPhone || r.recipientZaloId || '-'}</td>
                   <td className="px-4 py-2">
                     <RecipientStatusBadge status={r.status} />
                   </td>

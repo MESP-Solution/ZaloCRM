@@ -145,6 +145,22 @@ declare module 'zca-js' {
       avatarPath?: string;
     }): Promise<unknown>;
     getGroupInfo(groupId: string | string[]): Promise<unknown>;
+    getGroupLinkDetail(groupId: string): Promise<{
+      link?: string;
+      expiration_date?: number;
+      enabled: number;
+    }>;
+    getAllFriends(
+      count?: number,
+      page?: number,
+    ): Promise<ZaloFriend[]>;
+    getRelatedFriendGroup(
+      friendId: string | string[],
+    ): Promise<{ groupRelateds: Record<string, string[]> }>;
+    getAllGroups(): Promise<{
+      version: string;
+      gridVerMap: Record<string, string>;
+    }>;
     addUserToGroup(
       memberId: string | string[],
       groupId: string,
@@ -153,6 +169,15 @@ declare module 'zca-js' {
       memberId: string | string[],
       groupId: string,
     ): Promise<unknown>;
+  }
+
+  export interface ZaloFriend {
+    userId: string;
+    displayName: string;
+    zaloName: string;
+    avatar: string;
+    gender: number;
+    phoneNumber: string;
   }
 
   export class Zalo {

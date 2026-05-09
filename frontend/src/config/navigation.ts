@@ -11,6 +11,8 @@ export const mainNavigation: NavigationItem[] = [
     children: [
       { label: "Nhắn tin theo SĐT", href: "/message-with-phone" },
       { label: "Chiến dịch", href: "/campaigns" },
+      { label: "Quản lí nhóm", href: "/groups" },
+      { label: "Bạn bè", href: "/friends" },
       { label: "Tài khoản Zalo", href: "/accounts" },
     ],
   },

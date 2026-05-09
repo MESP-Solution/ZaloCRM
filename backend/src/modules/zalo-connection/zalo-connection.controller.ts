@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Param,
+  Query,
   Body,
   Req,
   UseGuards,
@@ -65,6 +66,28 @@ export class ZaloConnectionController {
     await this.connectionService.assertOwnership(accountId, req.user!.id);
     await this.connectionService.disconnectAccount(accountId);
     return { success: true, message: 'Account disconnected' };
+  }
+
+  @Get('friends')
+  @ApiOperation({ summary: 'Get all Zalo friends' })
+  async getAllFriends(
+    @Req() req: Request,
+    @Query('accountId') accountId?: string,
+  ) {
+    return this.connectionService.getAllFriends(req.user!.id, accountId);
+  }
+
+  @Post('friends/related-groups')
+  @ApiOperation({ summary: 'Get groups related to friends' })
+  async getRelatedFriendGroup(
+    @Req() req: Request,
+    @Body() body: { friendIds: string[]; accountId?: string },
+  ) {
+    return this.connectionService.getRelatedFriendGroup(
+      req.user!.id,
+      body.friendIds,
+      body.accountId,
+    );
   }
 
   @Get()

@@ -32,17 +32,15 @@ export class CustomerContact {
   @Property({ type: 'smallint', nullable: true })
   gender?: number;
 
-  @Property({ type: 'Date' })
+  @Property({ type: 'Date', onCreate: () => new Date() })
   createdAt!: Date;
 
-  @Property({ type: 'Date' })
+  @Property({ type: 'Date', onCreate: () => new Date(), onUpdate: () => new Date() })
   updatedAt!: Date;
 
   constructor(customer: CustomerAccount, phone: string) {
     this.id = uuidv4();
     this.customer = customer;
     this.phone = phone;
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
   }
 }

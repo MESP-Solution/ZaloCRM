@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
@@ -12,12 +13,15 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiCookieAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { ZaloAccountsService } from './zalo-accounts.service';
 import { ZaloConnectionService } from '../zalo-connection/zalo-connection.service';
+import { QuotaService } from '../messaging-campaigns/quota.service';
 import { UpdateZaloAccountDto } from './dto/update-zalo-account.dto';
+import { ZaloConnectionRegistry } from '../zalo-connection/zalo-connection-registry';
+import { ThreadType } from 'zca-js';
 
 @ApiTags('Zalo Accounts')
 @ApiCookieAuth('access_token')
@@ -28,12 +32,34 @@ export class ZaloAccountsController {
     private readonly zaloAccountsService: ZaloAccountsService,
     @Inject(forwardRef(() => ZaloConnectionService))
     private readonly connectionService: ZaloConnectionService,
+    private readonly quotaService: QuotaService,
+    private readonly registry: ZaloConnectionRegistry,
   ) {}
 
   @Get()
   @ApiOperation({ summary: 'List own Zalo accounts' })
   async listAccounts(@Req() req: Request) {
     return this.zaloAccountsService.findByCustomerId(req.user!.id);
+  }
+
+  @Get('quota')
+  @ApiOperation({ summary: 'Get daily quota for all own Zalo accounts' })
+  async getQuotaSummary(@Req() req: Request) {
+    const accounts = await this.zaloAccountsService.findByCustomerId(
+      req.user!.id,
+    );
+    const quotas = await Promise.all(
+      accounts.map(async (account) => {
+        const remaining = await this.quotaService.getRemainingQuota(account.id);
+        const dailyLimit = 50;
+        return {
+          accountId: account.id,
+          used: dailyLimit - remaining,
+          dailyLimit,
+        };
+      }),
+    );
+    return quotas;
   }
 
   @Get(':accountId')
@@ -92,6 +118,51 @@ export class ZaloAccountsController {
     await this.assertOwnership(accountId, req.user!.id);
     await this.zaloAccountsService.deleteAccount(accountId);
     return { success: true, message: 'Account deleted' };
+  }
+
+  @Post(':accountId/test-send')
+  @ApiOperation({ summary: 'Test send a message from this account' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['recipientId'],
+      properties: {
+        recipientId: { type: 'string', example: '4575641363482065221' },
+        text: { type: 'string', example: 'Test message', default: 'Test message' },
+      },
+    },
+  })
+  async testSend(
+    @Req() req: Request,
+    @Param('accountId') accountId: string,
+    @Body() body: { recipientId?: string; text?: string },
+  ) {
+    await this.assertOwnership(accountId, req.user!.id);
+
+    if (!body?.recipientId) {
+      throw new BadRequestException('recipientId is required');
+    }
+
+    const conn = this.registry.get(accountId);
+    if (!conn) {
+      throw new BadRequestException('Account is not connected');
+    }
+
+    try {
+      const response = await conn.api.sendMessage(
+        body.text || 'Test message',
+        body.recipientId,
+        ThreadType.User,
+      );
+      return { success: true, response };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+        accountId,
+        recipientId: body.recipientId,
+      };
+    }
   }
 
   private async assertOwnership(accountId: string, customerId: string) {

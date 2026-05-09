@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { zaloAccountsApi } from '../api/zalo-accounts-api';
 import type { ZaloAccount, ZaloAccountStatus } from '../types';
+import { getQuotaColor, getQuotaTextColor } from '../../../lib/utils/quota-display';
 import { ZaloAccountAddModal } from './zalo-account-add-modal';
 import { ZaloAccountEditModal } from './zalo-account-edit-modal';
 
@@ -43,9 +44,11 @@ export function ZaloAccountsPanel() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [actionInProgress, setActionInProgress] = useState<Set<string>>(new Set());
   const [bulkInProgress, setBulkInProgress] = useState(false);
+  const [quotaMap, setQuotaMap] = useState<Map<string, { used: number; dailyLimit: number }>>(new Map());
 
   useEffect(() => {
     fetchAccounts();
+    fetchQuota();
   }, []);
 
   const filteredAccounts = useMemo(() => {
@@ -73,6 +76,15 @@ export function ZaloAccountsPanel() {
       setError(err instanceof Error ? err.message : 'Failed to load accounts');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchQuota() {
+    try {
+      const data = await zaloAccountsApi.getQuota();
+      setQuotaMap(new Map(data.map((q) => [q.accountId, { used: q.used, dailyLimit: q.dailyLimit }])));
+    } catch {
+      /* quota is non-critical */
     }
   }
 
@@ -296,7 +308,8 @@ export function ZaloAccountsPanel() {
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Tên</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Số điện thoại</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Trạng thái</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Kết nối cuối</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quota hôm nay</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Proxy/IP</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Thao tác</th>
               </tr>
             </thead>
@@ -330,8 +343,32 @@ export function ZaloAccountsPanel() {
                         {STATUS_LABELS[account.status] || account.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const quota = quotaMap.get(account.id);
+                        if (!quota) return <span className="text-sm text-gray-400">-</span>;
+                        const pct = quota.dailyLimit > 0 ? Math.round((quota.used / quota.dailyLimit) * 100) : 0;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-20 overflow-hidden rounded-full bg-gray-100">
+                              <div
+                                className={`h-full rounded-full transition-all ${getQuotaColor(quota.used, quota.dailyLimit)}`}
+                                style={{ width: `${Math.min(pct, 100)}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs font-medium ${getQuotaTextColor(quota.used, quota.dailyLimit)}`}>
+                              {quota.used}/{quota.dailyLimit}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
-                      {account.lastConnectedAt ? new Date(account.lastConnectedAt).toLocaleString('vi-VN') : '-'}
+                      {account.proxyUrl ? (
+                        <span className="font-mono text-xs">{account.proxyUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                      ) : (
+                        <span className="text-gray-400">Direct</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">

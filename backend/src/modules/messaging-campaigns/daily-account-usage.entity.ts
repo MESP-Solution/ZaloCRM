@@ -47,7 +47,5 @@ export class DailyAccountUsage {
     this.zaloAccount = zaloAccount;
     this.date = date;
     this.dailyLimit = dailyLimit;
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
   }
 }

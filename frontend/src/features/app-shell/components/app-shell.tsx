@@ -24,6 +24,7 @@ export function AppShell({ children }: AppShellProps) {
   function getPageTitle(path: string): string {
     const titles: Record<string, string> = {
       '/dashboard': 'Trang chủ',
+      '/groups': 'Quản lí nhóm',
       '/accounts': 'Tài khoản Zalo',
       '/message-with-phone': 'Nhắn tin theo số điện thoại',
       '/contacts': 'Liên hệ',
@@ -39,6 +40,7 @@ export function AppShell({ children }: AppShellProps) {
   function getPageDescription(path: string): string {
     const descriptions: Record<string, string> = {
       '/dashboard': 'Tổng quan hoạt động',
+      '/groups': 'Lấy thông tin và thành viên nhóm Zalo từ link',
       '/accounts': 'Quản lý kết nối tài khoản Zalo',
       '/message-with-phone': 'Tạo chiến dịch gửi tin nhắn Zalo đến danh sách SĐT',
       '/contacts': 'Quản lý danh sách liên hệ',

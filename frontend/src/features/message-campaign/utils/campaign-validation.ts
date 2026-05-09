@@ -6,12 +6,7 @@ export interface CampaignValidationResult {
   estimatedDurationLabel: string;
 }
 
-const MAX_DELAY_SECONDS = 3600;
-const MAX_RECIPIENTS_PER_ACCOUNT = 1000;
-
-function isPositiveInteger(value: number): boolean {
-  return Number.isFinite(value) && Number.isInteger(value) && value > 0;
-}
+const DEFAULT_DELAY_SECONDS = 30;
 
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return 'Chưa xác định';
@@ -55,26 +50,6 @@ export function validateCampaign(
     blockers.push('Chọn ít nhất 1 người nhận từ danh sách SĐT.');
   }
 
-  if (!isPositiveInteger(formData.delayMinSeconds) || !isPositiveInteger(formData.delayMaxSeconds)) {
-    blockers.push('Delay gửi phải là số nguyên lớn hơn 0 giây.');
-  }
-
-  if (formData.delayMinSeconds > formData.delayMaxSeconds) {
-    blockers.push('Delay tối thiểu không được lớn hơn delay tối đa.');
-  }
-
-  if (formData.delayMaxSeconds > MAX_DELAY_SECONDS) {
-    blockers.push('Delay tối đa không nên vượt quá 3600 giây.');
-  }
-
-  if (!isPositiveInteger(formData.maxRecipientsPerAccount)) {
-    blockers.push('Giới hạn mỗi tài khoản phải là số nguyên lớn hơn 0.');
-  }
-
-  if (formData.maxRecipientsPerAccount > MAX_RECIPIENTS_PER_ACCOUNT) {
-    blockers.push('Giới hạn mỗi tài khoản không được vượt quá 1000 SĐT.');
-  }
-
   if (formData.startMode === 'scheduled' && !formData.startDate) {
     blockers.push('Chọn thời gian bắt đầu khi lên lịch.');
   }
@@ -88,8 +63,7 @@ export function validateCampaign(
     }
   }
 
-  const averageDelay = (formData.delayMinSeconds + formData.delayMaxSeconds) / 2;
-  const estimatedSeconds = selectedRecipients.length * averageDelay;
+  const estimatedSeconds = selectedRecipients.length * DEFAULT_DELAY_SECONDS;
 
   return {
     blockers,

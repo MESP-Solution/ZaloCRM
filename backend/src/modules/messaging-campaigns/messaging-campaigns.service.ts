@@ -11,11 +11,12 @@ import {
 } from './messaging-campaign.entity';
 import { CampaignZaloAccount } from './campaign-zalo-account.entity';
 import { CampaignRecipient } from './campaign-recipient.entity';
+import { DeliveryAttempt } from './delivery-attempt.entity';
 import { CustomersService } from '../customers/customers.service';
 import { ZaloAccountsService } from '../zalo-accounts/zalo-accounts.service';
 
 interface RecipientInput {
-  phone: string;
+  phone?: string;
   zaloId?: string;
   name?: string;
   gender?: number;
@@ -127,7 +128,6 @@ export class MessagingCampaignsService {
       return null;
     }
     campaign.status = status;
-    campaign.updatedAt = new Date();
     await this.em.flush();
     return campaign;
   }
@@ -141,7 +141,6 @@ export class MessagingCampaignsService {
       throw new BadRequestException('Can only pause a sending campaign');
     }
     campaign.status = 'paused_manual';
-    campaign.updatedAt = new Date();
     await this.em.flush();
     return campaign;
   }
@@ -161,7 +160,6 @@ export class MessagingCampaignsService {
     }
 
     campaign.status = 'queued';
-    campaign.updatedAt = new Date();
 
     const campaignAccounts = await this.campaignAccountRepo.find({
       campaign: { id: campaignId },
@@ -169,7 +167,6 @@ export class MessagingCampaignsService {
     });
     for (const ca of campaignAccounts) {
       ca.status = 'active';
-      ca.updatedAt = new Date();
     }
 
     await this.em.flush();
@@ -187,7 +184,6 @@ export class MessagingCampaignsService {
       );
     }
     campaign.status = 'cancelled';
-    campaign.updatedAt = new Date();
     await this.em.flush();
     return campaign;
   }
@@ -199,6 +195,45 @@ export class MessagingCampaignsService {
       { campaign: { id: campaignId } },
       { populate: ['zaloAccount'] },
     );
+  }
+
+  async deleteCampaign(campaignId: string): Promise<void> {
+    const campaign = await this.campaignRepo.findOne({ id: campaignId });
+    if (!campaign) {
+      throw new NotFoundException('Campaign not found');
+    }
+
+    const deletableStatuses: MessagingCampaignStatus[] = [
+      'draft',
+      'completed',
+      'cancelled',
+      'failed',
+    ];
+    if (!deletableStatuses.includes(campaign.status)) {
+      throw new BadRequestException(
+        'Only draft, completed, cancelled, or failed campaigns can be deleted',
+      );
+    }
+
+    const recipientIds = (
+      await this.recipientRepo.find(
+        { campaign: { id: campaignId } },
+        { fields: ['id'] },
+      )
+    ).map((r) => r.id);
+
+    if (recipientIds.length > 0) {
+      await this.em.nativeDelete(DeliveryAttempt, {
+        campaignRecipient: { $in: recipientIds },
+      });
+    }
+    await this.em.nativeDelete(CampaignRecipient, {
+      campaign: { id: campaignId },
+    });
+    await this.em.nativeDelete(CampaignZaloAccount, {
+      campaign: { id: campaignId },
+    });
+    await this.em.nativeDelete(MessagingCampaign, { id: campaignId });
   }
 
   async getRecipients(

@@ -58,7 +58,7 @@ export class AppConfigService {
 
   get campaignSendDelayMs(): number {
     const val = process.env['CAMPAIGN_SEND_DELAY_MS'];
-    return val ? Number(val) : 2000;
+    return val ? Number(val) : 30000;
   }
 
   get zaloHourlySendLimit(): number {

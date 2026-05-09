@@ -21,29 +21,43 @@ export class ZaloProviderLiveService implements ZaloProviderPort {
   async sendMessage(
     command: SendZaloMessageCommand,
   ): Promise<SendZaloMessageResult> {
-    const api = this.registry.getApi(command.zaloAccountId);
-    if (!api) {
+    const conn = this.registry.get(command.zaloAccountId);
+    if (!conn) {
       throw new ServiceUnavailableException(
         `Zalo account ${command.zaloAccountId} is not connected`,
       );
     }
 
+    const api = conn.api;
+
+    if (command.recipientId === conn.providerOwnId) {
+      throw new Error('Cannot send message to self (sender UID === recipient UID)');
+    }
+
     const message = command.imageFilePath
-      ? { msg: command.text, attachments: command.imageFilePath }
+      ? { msg: command.text, attachments: [command.imageFilePath] }
       : command.text;
 
-    const response = await api.sendMessage(
-      message,
-      command.recipientId,
-      ThreadType.User,
-    );
+    try {
+      const response = await api.sendMessage(
+        message,
+        command.recipientId,
+        ThreadType.User,
+      );
 
-    const providerMessageId = this.extractMessageId(response);
+      const providerMessageId = this.extractMessageId(response);
 
-    return {
-      providerMessageId,
-      sentAt: new Date(),
-    };
+      return {
+        providerMessageId,
+        sentAt: new Date(),
+      };
+    } catch (err) {
+      const proxy = conn.proxyUrl || 'direct';
+      this.logger.error(
+        `sendMessage failed [account=${command.zaloAccountId}] [proxy=${proxy}] [recipient=${command.recipientId}]: ${err instanceof Error ? err.message : err}`,
+      );
+      throw err;
+    }
   }
 
   async findUser(

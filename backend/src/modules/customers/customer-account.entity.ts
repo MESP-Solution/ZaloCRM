@@ -31,10 +31,10 @@ export class CustomerAccount {
   @ManyToMany({ entity: () => Role, inversedBy: 'customers' })
   roles = new Collection<Role>(this);
 
-  @Property({ type: 'Date' })
+  @Property({ type: 'Date', onCreate: () => new Date() })
   createdAt!: Date;
 
-  @Property({ type: 'Date' })
+  @Property({ type: 'Date', onCreate: () => new Date(), onUpdate: () => new Date() })
   updatedAt!: Date;
 
   constructor(email: string, name: string, passwordHash: string) {
@@ -43,7 +43,5 @@ export class CustomerAccount {
     this.name = name.trim();
     this.passwordHash = passwordHash;
     this.status = 'active';
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
   }
 }

@@ -14,7 +14,9 @@ export function SendingSettingsPanel({ formData, onChange }: Props) {
     <section className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="mb-3">
         <h2 className="text-base font-semibold text-gray-950">Cài đặt gửi</h2>
-        <p className="mt-1 text-sm text-gray-500">Queue chạy round-robin tuần tự qua các tài khoản đã chọn.</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Hệ thống tự động phân bổ người nhận cho tài khoản có quota còn nhiều nhất.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -51,50 +53,6 @@ export function SendingSettingsPanel({ formData, onChange }: Props) {
           />
         </div>
       )}
-
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Delay tối thiểu</label>
-          <input
-            type="number"
-            min={1}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-600"
-            value={formData.delayMinSeconds}
-            onChange={(event) => update({ delayMinSeconds: Number(event.target.value) })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Delay tối đa</label>
-          <input
-            type="number"
-            min={1}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-600"
-            value={formData.delayMaxSeconds}
-            onChange={(event) => update({ delayMaxSeconds: Number(event.target.value) })}
-          />
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700">Giới hạn mỗi tài khoản</label>
-        <input
-          type="number"
-          min={1}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-600"
-          value={formData.maxRecipientsPerAccount}
-          onChange={(event) => update({ maxRecipientsPerAccount: Number(event.target.value) })}
-        />
-      </div>
-
-      <label className="mt-4 flex items-start gap-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={formData.skipFailedAccount}
-          onChange={(event) => update({ skipFailedAccount: event.target.checked })}
-        />
-        <span>Bỏ qua tài khoản lỗi và tiếp tục với tài khoản còn lại.</span>
-      </label>
     </section>
   );
 }

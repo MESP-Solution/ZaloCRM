@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Query,
@@ -108,6 +111,14 @@ export class MessagingCampaignsController {
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
     });
+  }
+
+  @Delete(':campaignId')
+  @Roles('admin', 'customer')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a campaign' })
+  async deleteCampaign(@Param('campaignId') campaignId: string) {
+    await this.messagingCampaignsService.deleteCampaign(campaignId);
   }
 
   @Post(':campaignId/dispatch')

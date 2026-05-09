@@ -1,9 +1,16 @@
 import type { ZaloAccount } from '../../zalo-accounts/types';
+import { getQuotaColor, getQuotaTextColor } from '../../../lib/utils/quota-display';
+
+interface QuotaInfo {
+  used: number;
+  dailyLimit: number;
+}
 
 interface Props {
   accounts: ZaloAccount[];
   loading: boolean;
   selectedIds: string[];
+  quotaMap?: Map<string, QuotaInfo>;
   onChange: (ids: string[]) => void;
 }
 
@@ -15,7 +22,7 @@ const STATUS_LABELS: Record<ZaloAccount['status'], string> = {
   restricted: 'Bị hạn chế',
 };
 
-export function ZaloAccountSelector({ accounts, loading, selectedIds, onChange }: Props) {
+export function ZaloAccountSelector({ accounts, loading, selectedIds, quotaMap, onChange }: Props) {
   function toggleAccount(account: ZaloAccount) {
     if (account.status !== 'active') return;
 
@@ -42,6 +49,7 @@ export function ZaloAccountSelector({ accounts, loading, selectedIds, onChange }
           {accounts.map((account) => {
             const active = account.status === 'active';
             const selected = selectedIds.includes(account.id);
+            const quota = quotaMap?.get(account.id);
 
             return (
               <button
@@ -67,9 +75,24 @@ export function ZaloAccountSelector({ accounts, loading, selectedIds, onChange }
                     <p className="truncate text-sm font-semibold text-gray-950">{account.displayName}</p>
                     <p className="truncate text-xs text-gray-500">{account.phoneNumber || 'Chưa có SĐT'}</p>
                   </div>
-                  <span className={active ? 'text-xs font-medium text-emerald-700' : 'text-xs font-medium text-gray-500'}>
-                    {STATUS_LABELS[account.status]}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={active ? 'text-xs font-medium text-emerald-700' : 'text-xs font-medium text-gray-500'}>
+                      {STATUS_LABELS[account.status]}
+                    </span>
+                    {quota && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-1.5 w-14 overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className={`h-full rounded-full transition-all ${getQuotaColor(quota.used, quota.dailyLimit)}`}
+                            style={{ width: `${Math.min((quota.used / quota.dailyLimit) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <span className={`text-xs font-medium ${getQuotaTextColor(quota.used, quota.dailyLimit)}`}>
+                          {quota.used}/{quota.dailyLimit}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </button>
             );

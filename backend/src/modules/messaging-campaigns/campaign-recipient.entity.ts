@@ -24,8 +24,8 @@ export class CampaignRecipient {
   @ManyToOne(() => MessagingCampaign)
   campaign!: MessagingCampaign;
 
-  @Property({ type: 'string' })
-  recipientPhone!: string;
+  @Property({ type: 'string', nullable: true })
+  recipientPhone?: string;
 
   @Property({ type: 'string', nullable: true })
   recipientZaloId?: string;
@@ -63,7 +63,7 @@ export class CampaignRecipient {
 
   constructor(
     campaign: MessagingCampaign,
-    recipientPhone: string,
+    recipientPhone?: string,
     recipientZaloId?: string,
     recipientName?: string,
     recipientGender?: number,
@@ -75,7 +75,5 @@ export class CampaignRecipient {
     this.recipientName = recipientName;
     this.recipientGender = recipientGender;
     this.status = 'queued';
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
   }
 }

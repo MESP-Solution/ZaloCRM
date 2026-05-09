@@ -5,6 +5,7 @@ import { CampaignRecipient } from './campaign-recipient.entity';
 import { CampaignZaloAccount } from './campaign-zalo-account.entity';
 import { DeliveryAttempt } from './delivery-attempt.entity';
 import { QuotaService } from './quota.service';
+import { AppConfigService } from '../../config/app-config.service';
 
 interface AccountBreakdown {
   accountId: string;
@@ -13,6 +14,7 @@ interface AccountBreakdown {
   sentCount: number;
   failedAttempts: number;
   remainingQuota: number;
+  dailyLimit: number;
 }
 
 export interface CampaignStatsResponse {
@@ -30,6 +32,7 @@ export class CampaignStatsService {
   constructor(
     private readonly em: EntityManager,
     private readonly quotaService: QuotaService,
+    private readonly appConfig: AppConfigService,
   ) {}
 
   async getCampaignStats(campaignId: string): Promise<CampaignStatsResponse> {
@@ -87,6 +90,7 @@ export class CampaignStatsService {
         sentCount,
         failedAttempts,
         remainingQuota,
+        dailyLimit: this.appConfig.zaloDailySendLimit,
       });
     }
 

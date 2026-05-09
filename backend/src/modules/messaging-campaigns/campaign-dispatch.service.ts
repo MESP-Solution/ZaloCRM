@@ -45,7 +45,7 @@ export class CampaignDispatchService implements OnModuleInit {
     for (const campaign of stuckCampaigns) {
       try {
         campaign.status = 'queued';
-        campaign.updatedAt = new Date();
+
         await em.flush();
         await this.startDispatch(campaign.id);
         this.logger.log(`Resumed dispatch for campaign ${campaign.id}`);
@@ -84,7 +84,7 @@ export class CampaignDispatchService implements OnModuleInit {
     this.activeDispatches.add(campaignId);
 
     campaign.status = 'sending';
-    campaign.updatedAt = new Date();
+
     try {
       await em.flush();
     } catch (error) {
@@ -114,9 +114,14 @@ export class CampaignDispatchService implements OnModuleInit {
 
     while (true) {
       em.clear();
-      const campaign = await em.findOneOrFail(MessagingCampaign, {
+      const campaign = await em.findOne(MessagingCampaign, {
         id: campaignId,
       });
+
+      if (!campaign) {
+        this.logger.log(`Campaign ${campaignId} deleted, stopping dispatch`);
+        return;
+      }
 
       if (campaign.status === 'cancelled') {
         this.logger.log(`Campaign ${campaignId} cancelled, stopping dispatch`);
@@ -138,7 +143,7 @@ export class CampaignDispatchService implements OnModuleInit {
 
       if (!recipient) {
         campaign.status = 'completed';
-        campaign.updatedAt = new Date();
+
         await em.flush();
         this.logger.log(`Campaign ${campaignId} completed`);
         return;
@@ -159,7 +164,7 @@ export class CampaignDispatchService implements OnModuleInit {
 
       if (result === 'paused_quota_exhausted') {
         campaign.status = 'paused_quota_exhausted';
-        campaign.updatedAt = new Date();
+
         await em.flush();
         this.logger.warn(
           `Campaign ${campaignId} paused: all accounts quota exhausted`,
@@ -169,7 +174,7 @@ export class CampaignDispatchService implements OnModuleInit {
 
       if (result === 'paused_no_available_account') {
         campaign.status = 'paused_no_available_account';
-        campaign.updatedAt = new Date();
+
         await em.flush();
         this.logger.warn(
           `Campaign ${campaignId} paused: no available accounts`,
@@ -178,8 +183,13 @@ export class CampaignDispatchService implements OnModuleInit {
       }
 
       await em.flush();
-      await this.sleep(delayMs);
+      await this.sleep(this.jitteredDelay(delayMs));
     }
+  }
+
+  private jitteredDelay(baseMs: number): number {
+    const jitter = Math.floor(Math.random() * 10000) - 5000;
+    return Math.max(5000, baseMs + jitter);
   }
 
   private async sendToRecipient(
@@ -208,19 +218,21 @@ export class CampaignDispatchService implements OnModuleInit {
         if (resolvedUid) {
           recipient.recipientZaloId = resolvedUid;
           await em.flush();
+          await this.sleep(3000);
         }
       }
     }
 
     if (!recipient.recipientZaloId) {
       recipient.status = 'skipped';
-      recipient.errorMessage = 'No Zalo ID resolved for this phone number';
-      recipient.updatedAt = new Date();
+      recipient.errorMessage = recipient.recipientPhone
+        ? 'No Zalo ID resolved for this phone number'
+        : 'No Zalo ID and no phone number provided';
+
       return 'skipped';
     }
 
     recipient.status = 'sending';
-    recipient.updatedAt = new Date();
     await em.flush();
 
     const activeAccounts = accounts.filter((a) => a.status === 'active');
@@ -239,15 +251,21 @@ export class CampaignDispatchService implements OnModuleInit {
         (a) => a.status === 'quota_exhausted',
       );
       recipient.status = 'queued';
-      recipient.updatedAt = new Date();
+
       return allQuotaExhausted
         ? 'paused_quota_exhausted'
         : 'paused_no_available_account';
     }
 
     let attemptNumber = recipient.attemptCount;
+    let lastErrorMessage: string | undefined;
 
-    for (const campaignAccount of activeAccounts) {
+    for (let i = 0; i < activeAccounts.length; i++) {
+      const campaignAccount = activeAccounts[i];
+      if (i > 0) {
+        await this.sleep(5000);
+      }
+
       const canSend = await this.quotaService.canSend(
         campaignAccount.zaloAccount.id,
         em,
@@ -255,7 +273,7 @@ export class CampaignDispatchService implements OnModuleInit {
 
       if (!canSend) {
         campaignAccount.status = 'quota_exhausted';
-        campaignAccount.updatedAt = new Date();
+
         continue;
       }
 
@@ -274,7 +292,7 @@ export class CampaignDispatchService implements OnModuleInit {
         recipient.status = 'sent';
         recipient.sentByZaloAccount = campaignAccount.zaloAccount;
         recipient.providerMessageId = attempt.providerMessageId;
-        recipient.updatedAt = new Date();
+
         campaign.sentCount += 1;
         await this.quotaService.incrementDailySent(
           campaignAccount.zaloAccount.id,
@@ -282,22 +300,46 @@ export class CampaignDispatchService implements OnModuleInit {
         );
         return 'sent';
       }
+
+      lastErrorMessage = attempt.errorMessage;
     }
 
     const stillActive = accounts.filter((a) => a.status === 'active');
     if (stillActive.length === 0) {
       recipient.status = 'queued';
-      recipient.updatedAt = new Date();
+
       const allQuota = accounts.every((a) => a.status === 'quota_exhausted');
       return allQuota
         ? 'paused_quota_exhausted'
         : 'paused_no_available_account';
     }
 
+    const isRateLimitError = lastErrorMessage &&
+      lastErrorMessage.toLowerCase().includes('không hợp lệ');
+    if (isRateLimitError && recipient.attemptCount < 6) {
+      recipient.status = 'queued';
+      this.logger.warn(
+        `Recipient ${recipient.recipientZaloId} requeued (attempt ${recipient.attemptCount}/6) due to suspected rate limit`,
+      );
+      return 'sent';
+    }
+
     recipient.status = 'failed';
-    recipient.updatedAt = new Date();
+    recipient.errorMessage = lastErrorMessage;
     campaign.failedCount += 1;
     return 'failed';
+  }
+
+  private isRetryableError(errorMsg: string): boolean {
+    const lower = errorMsg.toLowerCase();
+    if (lower.includes('cannot send message to self')) return false;
+    return (
+      lower.includes('không hợp lệ') ||
+      lower.includes('invalid') ||
+      lower.includes('timeout') ||
+      lower.includes('econnreset') ||
+      lower.includes('econnrefused')
+    );
   }
 
   private async attemptSend(
@@ -319,43 +361,71 @@ export class CampaignDispatchService implements OnModuleInit {
       await this.sleep(backoffMs);
     }
 
-    try {
-      const resolvedText = resolveMessagePlaceholders(campaign.messageText, recipient);
-      const result = await this.zaloProvider.sendMessage({
-        zaloAccountId: accountId,
-        recipientId: recipient.recipientZaloId!,
-        text: resolvedText,
-        campaignId: campaign.id,
-        imageFilePath: campaign.imageFilePath,
-      });
-      attempt.status = 'sent';
-      attempt.providerMessageId = result.providerMessageId;
-      this.accountBackoff.delete(accountId);
-    } catch (error: unknown) {
-      attempt.status = 'failed';
-      const errorMsg =
-        error instanceof Error ? error.message : String(error);
-      attempt.errorMessage = errorMsg;
+    const maxRetries = 2;
+    const resolvedText = resolveMessagePlaceholders(campaign.messageText, recipient);
+    let lastError: string | undefined;
 
-      const lowerMsg = errorMsg.toLowerCase();
+    for (let retry = 0; retry <= maxRetries; retry++) {
+      try {
+        if (retry > 0) {
+          const retryDelay = this.jitteredDelay(retry * 10000);
+          this.logger.log(
+            `Retry ${retry}/${maxRetries} for recipient=${recipient.recipientZaloId} after ${retryDelay}ms`,
+          );
+          await this.sleep(retryDelay);
+        }
+
+        const result = await this.zaloProvider.sendMessage({
+          zaloAccountId: accountId,
+          recipientId: recipient.recipientZaloId!,
+          text: resolvedText,
+          campaignId: campaign.id,
+          imageFilePath: campaign.imageFilePath,
+        });
+        attempt.status = 'sent';
+        attempt.providerMessageId = result.providerMessageId;
+        this.accountBackoff.delete(accountId);
+        lastError = undefined;
+        break;
+      } catch (error: unknown) {
+        const errorMsg =
+          error instanceof Error ? error.message : String(error);
+        lastError = errorMsg;
+
+        if (retry < maxRetries && this.isRetryableError(errorMsg)) {
+          continue;
+        }
+        break;
+      }
+    }
+
+    if (lastError) {
+      attempt.status = 'failed';
+      attempt.errorMessage = lastError;
+      this.logger.error(
+        `Send failed [campaign=${campaign.id}] [account=${accountId}] [recipient=${recipient.recipientZaloId}]: ${lastError}`,
+      );
+
+      const lowerMsg = lastError.toLowerCase();
 
       if (lowerMsg.includes('not connected')) {
         campaignAccount.status = 'disconnected';
-        campaignAccount.updatedAt = new Date();
+        campaignAccount.zaloAccount.status = 'disconnected';
       } else if (
         lowerMsg.includes('restricted') ||
         lowerMsg.includes('banned') ||
         lowerMsg.includes('blocked')
       ) {
         campaignAccount.status = 'restricted';
-        campaignAccount.updatedAt = new Date();
+        campaignAccount.zaloAccount.status = 'restricted';
       }
 
       if (
         lowerMsg.includes('rate') ||
         lowerMsg.includes('limit') ||
         lowerMsg.includes('spam') ||
-        lowerMsg.includes('too many')
+        lowerMsg.includes('too many') ||
+        lowerMsg.includes('không hợp lệ')
       ) {
         const currentBackoff = this.accountBackoff.get(accountId) || Math.max(this.appConfig.campaignSendDelayMs, 1000);
         const nextBackoff = Math.min(
@@ -370,8 +440,15 @@ export class CampaignDispatchService implements OnModuleInit {
     }
 
     attempt.finishedAt = new Date();
-    em.persist(attempt);
-    await em.flush();
+    try {
+      em.persist(attempt);
+      await em.flush();
+    } catch (flushErr) {
+      this.logger.warn(
+        `Failed to persist delivery attempt for recipient=${recipient.recipientZaloId}: ${flushErr instanceof Error ? flushErr.message : flushErr}`,
+      );
+      em.clear();
+    }
     return attempt;
   }
 

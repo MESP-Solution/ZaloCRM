@@ -426,10 +426,22 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     return Date.now() - last >= RECONNECT_COOLDOWN_MS;
   }
 
-  private async getConnectedApiForCustomer(customerId: string): Promise<{
+  private async getConnectedApiForCustomer(
+    customerId: string,
+    accountId?: string,
+  ): Promise<{
     accountId: string;
     api: API;
   }> {
+    if (accountId) {
+      await this.assertOwnership(accountId, customerId);
+      const api = this.registry.getApi(accountId);
+      if (!api) {
+        throw new NotFoundException('Zalo account is not connected');
+      }
+      return { accountId, api };
+    }
+
     const connections = await this.listConnectedByCustomer(customerId);
     const primary = connections[0];
     if (!primary) {
@@ -442,6 +454,30 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     }
 
     return { accountId: primary.accountId, api };
+  }
+
+  async getAllFriends(
+    customerId: string,
+    accountId?: string,
+  ): Promise<unknown[]> {
+    const { api } = await this.getConnectedApiForCustomer(
+      customerId,
+      accountId,
+    );
+    return api.getAllFriends(20000, 1);
+  }
+
+  async getRelatedFriendGroup(
+    customerId: string,
+    friendIds: string[],
+    accountId?: string,
+  ): Promise<Record<string, string[]>> {
+    const { api } = await this.getConnectedApiForCustomer(
+      customerId,
+      accountId,
+    );
+    const result = await api.getRelatedFriendGroup(friendIds);
+    return result.groupRelateds;
   }
 
   private isFindUserResponse(value: unknown): value is FindUserResponse {

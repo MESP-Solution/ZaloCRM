@@ -55,7 +55,5 @@ export class CampaignZaloAccount {
     this.campaign = campaign;
     this.zaloAccount = zaloAccount;
     this.status = 'active';
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
   }
 }

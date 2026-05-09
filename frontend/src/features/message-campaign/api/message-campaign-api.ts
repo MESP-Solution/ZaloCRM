@@ -22,7 +22,7 @@ interface CreateCampaignPayload {
   name: string;
   messageText: string;
   zaloAccountIds: string[];
-  recipients: { phone: string; zaloId?: string; name?: string; gender?: number }[];
+  recipients: { phone?: string; zaloId?: string; name?: string; gender?: number }[];
   scheduleAt?: string;
   imageFilePath?: string;
 }
