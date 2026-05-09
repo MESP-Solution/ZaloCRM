@@ -14,7 +14,6 @@ export class AuthCookieService {
   private readonly secure: boolean;
   private readonly maxAgeMs: number;
   private readonly sameSiteValue: SameSiteCookieOption;
-  private readonly domain?: string;
 
   constructor() {
     this.cookieName = requireEnv('AUTH_COOKIE_NAME');
@@ -23,7 +22,6 @@ export class AuthCookieService {
     this.sameSiteValue = this.parseSameSite(
       requireEnv('AUTH_COOKIE_SAME_SITE'),
     );
-    this.domain = process.env['AUTH_COOKIE_DOMAIN']?.trim() || undefined;
   }
 
   setSessionCookie(response: Response, accessToken: string): void {
@@ -33,7 +31,6 @@ export class AuthCookieService {
       sameSite: this.sameSiteValue,
       maxAge: this.maxAgeMs,
       path: '/',
-      domain: this.domain,
     });
   }
 
@@ -42,7 +39,6 @@ export class AuthCookieService {
       secure: this.secure,
       sameSite: this.sameSiteValue,
       path: '/',
-      domain: this.domain,
     });
   }
 
