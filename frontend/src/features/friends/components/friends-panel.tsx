@@ -170,89 +170,91 @@ export function FriendsPanel() {
               : 'Không tìm thấy.'}
         </div>
       ) : (
-        <div className="overflow-auto rounded-lg border border-gray-200">
-          <table className="w-full min-w-[600px]">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="w-10 px-4 py-2.5" />
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Avatar</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Tên hiển thị</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Tên Zalo</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">SĐT</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">UID</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Giới tính</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {paginated.map((f) => (
-                <tr
-                  key={f.userId}
-                  className={`cursor-pointer ${selectedFriendIds.has(f.userId) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                  onClick={() => toggleFriend(f.userId)}
-                >
-                  <td className="px-4 py-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedFriendIds.has(f.userId)}
-                      onChange={() => toggleFriend(f.userId)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    {f.avatar ? (
-                      <img
-                        src={f.avatar}
-                        alt=""
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs text-gray-500">
-                        ?
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">{f.displayName || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{f.zaloName || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{f.phoneNumber || '-'}</td>
-                  <td className="px-4 py-2 font-mono text-xs text-gray-400">{f.userId}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">
-                    {f.gender === 0 ? 'Nam' : f.gender === 1 ? 'Nữ' : '-'}
-                  </td>
+        <>
+          <div className="overflow-auto rounded-lg border border-gray-200">
+            <table className="w-full min-w-[600px]">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="w-10 px-4 py-2.5" />
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Avatar</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Tên hiển thị</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Tên Zalo</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">SĐT</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">UID</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Giới tính</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-            <span className="text-sm text-gray-500">
-              {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} / {filtered.length}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
-              >
-                ← Trước
-              </button>
-              <span className="text-sm text-gray-600">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
-              >
-                Sau →
-              </button>
-            </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {paginated.map((f) => (
+                  <tr
+                    key={f.userId}
+                    className={`cursor-pointer ${selectedFriendIds.has(f.userId) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    onClick={() => toggleFriend(f.userId)}
+                  >
+                    <td className="px-4 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedFriendIds.has(f.userId)}
+                        onChange={() => toggleFriend(f.userId)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      {f.avatar ? (
+                        <img
+                          src={f.avatar}
+                          alt=""
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs text-gray-500">
+                          ?
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{f.displayName || '-'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-600">{f.zaloName || '-'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-600">{f.phoneNumber || '-'}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-gray-400">{f.userId}</td>
+                    <td className="px-4 py-2 text-sm text-gray-600">
+                      {f.gender === 0 ? 'Nam' : f.gender === 1 ? 'Nữ' : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+              <span className="text-sm text-gray-500">
+                {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} / {filtered.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
+                >
+                  ← Trước
+                </button>
+                <span className="text-sm text-gray-600">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
+                >
+                  Sau →
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {relatedGroups && (
