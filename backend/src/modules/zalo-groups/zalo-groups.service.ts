@@ -6,8 +6,43 @@ import {
 } from '@nestjs/common';
 import { ZaloConnectionRegistry } from '../zalo-connection/zalo-connection-registry';
 
-const RETRY_DELAY_MS = 2500;
+const RETRY_DELAY_MS = 1000;
 const MAX_RETRIES = 2;
+const GROUPS_CACHE_TTL_MS = 5 * 60 * 1000;
+const MEMBERS_CACHE_TTL_MS = 10 * 60 * 1000;
+
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+class TtlCache<T> {
+  private store = new Map<string, CacheEntry<T>>();
+
+  get(key: string): T | null {
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      return null;
+    }
+    return entry.data;
+  }
+
+  set(key: string, data: T, ttlMs: number): void {
+    this.store.set(key, { data, expiresAt: Date.now() + ttlMs });
+  }
+
+  invalidate(key: string): void {
+    this.store.delete(key);
+  }
+
+  invalidatePrefix(prefix: string): void {
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) this.store.delete(key);
+    }
+  }
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,6 +96,8 @@ export interface GroupMembersResult {
 @Injectable()
 export class ZaloGroupsService {
   private readonly logger = new Logger(ZaloGroupsService.name);
+  private readonly groupsCache = new TtlCache<MyGroupSummary[]>();
+  private readonly membersCache = new TtlCache<GroupMembersResult>();
 
   constructor(private readonly registry: ZaloConnectionRegistry) {}
 
@@ -194,6 +231,13 @@ export class ZaloGroupsService {
   }
 
   async getMyGroups(zaloAccountId: string): Promise<MyGroupSummary[]> {
+    const cacheKey = `groups:${zaloAccountId}`;
+    const cached = this.groupsCache.get(cacheKey);
+    if (cached) {
+      this.logger.log(`Groups cache hit for account=${zaloAccountId}`);
+      return cached;
+    }
+
     const api = this.registry.getApi(zaloAccountId);
     if (!api) {
       throw new ServiceUnavailableException(
@@ -206,7 +250,7 @@ export class ZaloGroupsService {
     if (groupIds.length === 0) return [];
 
     const allSummaries: MyGroupSummary[] = [];
-    const chunkSize = 10;
+    const chunkSize = 20;
 
     for (let i = 0; i < groupIds.length; i += chunkSize) {
       if (i > 0) await sleep(RETRY_DELAY_MS);
@@ -218,6 +262,7 @@ export class ZaloGroupsService {
       allSummaries.push(...this.mapGroupInfoBatch(infoRaw, chunk));
     }
 
+    this.groupsCache.set(cacheKey, allSummaries, GROUPS_CACHE_TTL_MS);
     return allSummaries;
   }
 
@@ -225,6 +270,13 @@ export class ZaloGroupsService {
     zaloAccountId: string,
     groupId: string,
   ): Promise<GroupMembersResult> {
+    const cacheKey = `members:${zaloAccountId}:${groupId}`;
+    const cached = this.membersCache.get(cacheKey);
+    if (cached) {
+      this.logger.log(`Members cache hit for group=${groupId}`);
+      return cached;
+    }
+
     const api = this.registry.getApi(zaloAccountId);
     if (!api) {
       throw new ServiceUnavailableException(
@@ -241,7 +293,7 @@ export class ZaloGroupsService {
 
     const fullLink = `https://zalo.me/g/${linkDetail.link}`;
     const result = await this.fetchAllMembers(zaloAccountId, fullLink);
-    return {
+    const membersResult: GroupMembersResult = {
       groupId,
       name: result.name,
       avatar: '',
@@ -250,6 +302,9 @@ export class ZaloGroupsService {
       totalMember: result.totalMember,
       members: result.members,
     };
+
+    this.membersCache.set(cacheKey, membersResult, MEMBERS_CACHE_TTL_MS);
+    return membersResult;
   }
 
   private mapGroupInfoBatch(
@@ -284,48 +339,4 @@ export class ZaloGroupsService {
     return [];
   }
 
-  private mapSingleGroupInfo(raw: any, groupId: string): GroupMembersResult {
-    const g = raw?.gridInfoMap?.[groupId] ?? raw?.[groupId] ?? raw;
-    this.logger.debug(
-      `[getGroupInfo] raw keys: ${JSON.stringify(Object.keys(raw ?? {}))}`,
-    );
-    this.logger.debug(
-      `[getGroupInfo] group keys: ${JSON.stringify(Object.keys(g ?? {}))}`,
-    );
-    this.logger.debug(
-      `[getGroupInfo] currentMems count: ${g?.currentMems?.length}, memberIds count: ${g?.memberIds?.length}`,
-    );
-
-    const currentMems = g.currentMems ?? [];
-    const memberIds: string[] = g.memberIds ?? [];
-
-    // currentMems has full profile; memberIds is just IDs
-    // Use currentMems if available, otherwise create stubs from memberIds
-    const members: GroupMember[] =
-      currentMems.length > 0
-        ? currentMems.map((m: any) => ({
-            id: m.id,
-            displayName: m.dName ?? m.displayName ?? '',
-            zaloName: m.zaloName ?? '',
-            avatar: m.avatar ?? '',
-            type: m.type ?? 0,
-          }))
-        : memberIds.map((id: string) => ({
-            id,
-            displayName: '',
-            zaloName: '',
-            avatar: '',
-            type: 0,
-          }));
-
-    return {
-      groupId: g.groupId ?? g.id ?? groupId,
-      name: g.name ?? g.dName ?? '',
-      avatar: g.fullAvt ?? g.avt ?? g.avatar ?? '',
-      creatorId: g.creatorId ?? '',
-      adminIds: g.adminIds ?? [],
-      totalMember: g.totalMember ?? g.memCount ?? 0,
-      members,
-    };
-  }
 }
