@@ -24,12 +24,16 @@ import { ZaloConnectionInfo } from './zalo-connection-info.interface';
 import { CustomerAccount } from '../customers/customer-account.entity';
 
 const RECONNECT_COOLDOWN_MS = 5 * 60 * 1000;
+const FRIENDS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface CacheEntry<T> { data: T; expiresAt: number }
 
 @Injectable()
 export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ZaloConnectionService.name);
   private readonly reconnectCooldowns = new Map<string, number>();
   private readonly loginInProgress = new Set<string>();
+  private readonly friendsCache = new Map<string, CacheEntry<unknown[]>>();
   private isShuttingDown = false;
 
   constructor(
@@ -460,11 +464,23 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     customerId: string,
     accountId?: string,
   ): Promise<unknown[]> {
-    const { api } = await this.getConnectedApiForCustomer(
+    const { accountId: resolvedId, api } = await this.getConnectedApiForCustomer(
       customerId,
       accountId,
     );
-    return api.getAllFriends(20000, 1);
+
+    const cached = this.friendsCache.get(resolvedId);
+    if (cached && Date.now() < cached.expiresAt) {
+      this.logger.log(`Friends cache hit for account=${resolvedId}`);
+      return cached.data;
+    }
+
+    const friends = await api.getAllFriends(20000, 1);
+    this.friendsCache.set(resolvedId, {
+      data: friends,
+      expiresAt: Date.now() + FRIENDS_CACHE_TTL_MS,
+    });
+    return friends;
   }
 
   async getRelatedFriendGroup(

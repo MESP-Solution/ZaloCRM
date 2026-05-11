@@ -245,7 +245,7 @@ export class ZaloGroupsService {
       );
     }
 
-    const result = await api.getAllGroups();
+    const result = await this.retryZaloCall(() => api.getAllGroups());
     const groupIds = Object.keys(result.gridVerMap ?? {});
     if (groupIds.length === 0) return [];
 
@@ -258,11 +258,21 @@ export class ZaloGroupsService {
       this.logger.log(
         `Fetching group info batch ${Math.floor(i / chunkSize) + 1}/${Math.ceil(groupIds.length / chunkSize)} (${chunk.length} groups)`,
       );
-      const infoRaw: any = await api.getGroupInfo(chunk);
-      allSummaries.push(...this.mapGroupInfoBatch(infoRaw, chunk));
+      try {
+        const infoRaw: any = await this.retryZaloCall(
+          () => api.getGroupInfo(chunk),
+        );
+        allSummaries.push(...this.mapGroupInfoBatch(infoRaw, chunk));
+      } catch (err: any) {
+        this.logger.warn(
+          `Skipping batch for account=${zaloAccountId}: ${err?.message ?? err}`,
+        );
+      }
     }
 
-    this.groupsCache.set(cacheKey, allSummaries, GROUPS_CACHE_TTL_MS);
+    if (allSummaries.length > 0) {
+      this.groupsCache.set(cacheKey, allSummaries, GROUPS_CACHE_TTL_MS);
+    }
     return allSummaries;
   }
 
@@ -305,6 +315,31 @@ export class ZaloGroupsService {
 
     this.membersCache.set(cacheKey, membersResult, MEMBERS_CACHE_TTL_MS);
     return membersResult;
+  }
+
+  private async retryZaloCall<T>(fn: () => Promise<T>): Promise<T> {
+    let lastError: any;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          this.logger.log(`Retry ${attempt}/${MAX_RETRIES}, waiting ${RETRY_DELAY_MS}ms`);
+          await sleep(RETRY_DELAY_MS);
+        }
+        return await fn();
+      } catch (err: any) {
+        lastError = err;
+        const msg = err?.message?.toLowerCase?.() ?? '';
+        const isRetryable =
+          msg.includes('retry limit') ||
+          msg.includes('rate') ||
+          msg.includes('limit') ||
+          msg.includes('timeout') ||
+          msg.includes('econnreset') ||
+          msg === '';
+        if (!isRetryable) break;
+      }
+    }
+    throw lastError;
   }
 
   private mapGroupInfoBatch(
