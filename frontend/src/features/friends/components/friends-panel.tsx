@@ -18,6 +18,8 @@ export function FriendsPanel() {
   const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(new Set());
   const [relatedGroups, setRelatedGroups] = useState<Record<string, string[]> | null>(null);
   const [groupsLoading, setGroupsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
 
   useEffect(() => {
     zaloAccountsApi
@@ -54,6 +56,7 @@ export function FriendsPanel() {
   }, [selectedAccountId, reloadKey]);
 
   useEffect(() => {
+    setCurrentPage(1);
     if (!search.trim()) {
       setFiltered(friends);
       return;
@@ -95,6 +98,8 @@ export function FriendsPanel() {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const activeAccounts = accounts.filter((a) => a.status === 'active');
 
   return (
@@ -179,7 +184,7 @@ export function FriendsPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((f) => (
+              {paginated.map((f) => (
                 <tr
                   key={f.userId}
                   className={`cursor-pointer ${selectedFriendIds.has(f.userId) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
@@ -219,6 +224,35 @@ export function FriendsPanel() {
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+            <span className="text-sm text-gray-500">
+              {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} / {filtered.length}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
+              >
+                ← Trước
+              </button>
+              <span className="text-sm text-gray-600">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
+              >
+                Sau →
+              </button>
+            </div>
+          </div>
+        )}
       )}
 
       {relatedGroups && (
