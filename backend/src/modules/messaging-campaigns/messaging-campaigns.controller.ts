@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -17,6 +18,7 @@ import { ApiTags, ApiCookieAuth, ApiOperation, ApiConsumes } from '@nestjs/swagg
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../common/auth/roles.guard';
 import { CreateMessagingCampaignDto } from './dto/create-messaging-campaign.dto';
@@ -36,7 +38,7 @@ export class MessagingCampaignsController {
   ) {}
 
   @Post('upload-image')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Upload a campaign image' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -62,11 +64,11 @@ export class MessagingCampaignsController {
   }
 
   @Post()
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Create a messaging campaign' })
-  createCampaign(@Body() dto: CreateMessagingCampaignDto) {
+  createCampaign(@Req() req: Request, @Body() dto: CreateMessagingCampaignDto) {
     return this.messagingCampaignsService.createCampaign(
-      dto.customerId,
+      req.user!.id,
       dto.name,
       dto.messageText,
       dto.zaloAccountIds,
@@ -77,35 +79,44 @@ export class MessagingCampaignsController {
   }
 
   @Get()
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'List messaging campaigns' })
-  listCampaigns(@Query('customerId') customerId?: string) {
-    return this.messagingCampaignsService.listCampaigns(customerId);
+  listCampaigns(@Req() req: Request) {
+    return this.messagingCampaignsService.listCampaigns(req.user!.id);
   }
 
   @Get(':campaignId')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Get a campaign by ID' })
-  getCampaign(@Param('campaignId') campaignId: string) {
-    return this.messagingCampaignsService.findById(campaignId);
+  async getCampaign(
+    @Req() req: Request,
+    @Param('campaignId') campaignId: string,
+  ) {
+    return this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
   }
 
   @Get(':campaignId/stats')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Get campaign stats' })
-  getCampaignStats(@Param('campaignId') campaignId: string) {
+  async getCampaignStats(
+    @Req() req: Request,
+    @Param('campaignId') campaignId: string,
+  ) {
+    await this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
     return this.campaignStatsService.getCampaignStats(campaignId);
   }
 
   @Get(':campaignId/recipients')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'List campaign recipients' })
-  getRecipients(
+  async getRecipients(
+    @Req() req: Request,
     @Param('campaignId') campaignId: string,
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    await this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
     return this.messagingCampaignsService.getRecipients(campaignId, {
       status,
       page: page ? parseInt(page, 10) : undefined,
@@ -114,39 +125,59 @@ export class MessagingCampaignsController {
   }
 
   @Delete(':campaignId')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a campaign' })
-  async deleteCampaign(@Param('campaignId') campaignId: string) {
+  async deleteCampaign(
+    @Req() req: Request,
+    @Param('campaignId') campaignId: string,
+  ) {
+    await this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
     await this.messagingCampaignsService.deleteCampaign(campaignId);
   }
 
   @Post(':campaignId/dispatch')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Dispatch a campaign' })
-  dispatchCampaign(@Param('campaignId') campaignId: string) {
+  async dispatchCampaign(
+    @Req() req: Request,
+    @Param('campaignId') campaignId: string,
+  ) {
+    await this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
     return this.campaignDispatchService.startDispatch(campaignId);
   }
 
   @Post(':campaignId/pause')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Pause a sending campaign' })
-  pauseCampaign(@Param('campaignId') campaignId: string) {
+  async pauseCampaign(
+    @Req() req: Request,
+    @Param('campaignId') campaignId: string,
+  ) {
+    await this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
     return this.messagingCampaignsService.pauseCampaign(campaignId);
   }
 
   @Post(':campaignId/resume')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Resume a paused campaign and restart dispatch' })
-  async resumeCampaign(@Param('campaignId') campaignId: string) {
+  async resumeCampaign(
+    @Req() req: Request,
+    @Param('campaignId') campaignId: string,
+  ) {
+    await this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
     await this.messagingCampaignsService.resumeCampaign(campaignId);
     return this.campaignDispatchService.startDispatch(campaignId);
   }
 
   @Post(':campaignId/cancel')
-  @Roles('admin', 'customer')
+  @Roles('customer')
   @ApiOperation({ summary: 'Cancel a campaign' })
-  cancelCampaign(@Param('campaignId') campaignId: string) {
+  async cancelCampaign(
+    @Req() req: Request,
+    @Param('campaignId') campaignId: string,
+  ) {
+    await this.messagingCampaignsService.assertOwnership(campaignId, req.user!.id);
     return this.messagingCampaignsService.cancelCampaign(campaignId);
   }
 }

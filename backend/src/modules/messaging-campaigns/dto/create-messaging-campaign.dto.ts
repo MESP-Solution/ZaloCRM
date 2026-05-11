@@ -1,8 +1,9 @@
 import { IsArray, IsOptional, IsString, ArrayNotEmpty } from 'class-validator';
 
 export class CreateMessagingCampaignDto {
+  @IsOptional()
   @IsString()
-  customerId!: string;
+  customerId?: string;
 
   @IsArray()
   @ArrayNotEmpty()

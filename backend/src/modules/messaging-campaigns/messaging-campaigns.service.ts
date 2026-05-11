@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -108,15 +109,23 @@ export class MessagingCampaignsService {
     return this.campaignRepo.findOne({ id: campaignId });
   }
 
-  async findByCustomerId(customerId: string): Promise<MessagingCampaign[]> {
+  async listCampaigns(customerId: string): Promise<MessagingCampaign[]> {
     return this.campaignRepo.find({ customer: { id: customerId } });
   }
 
-  async listCampaigns(customerId?: string): Promise<MessagingCampaign[]> {
-    if (customerId) {
-      return this.campaignRepo.find({ customer: { id: customerId } });
+  async assertOwnership(
+    campaignId: string,
+    customerId: string,
+  ): Promise<MessagingCampaign> {
+    const campaign = await this.campaignRepo.findOne(
+      { id: campaignId },
+      { populate: ['customer'] },
+    );
+    if (!campaign) throw new NotFoundException('Campaign not found');
+    if (campaign.customer.id !== customerId) {
+      throw new ForbiddenException('You do not own this campaign');
     }
-    return this.campaignRepo.findAll();
+    return campaign;
   }
 
   async updateStatus(

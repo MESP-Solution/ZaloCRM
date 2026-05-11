@@ -6,9 +6,8 @@ import type {
 } from '../types';
 
 export const campaignsApi = {
-  async list(customerId?: string): Promise<Campaign[]> {
-    const query = customerId ? `?customerId=${customerId}` : '';
-    return apiClient<Campaign[]>(`/messaging-campaigns${query}`);
+  async list(): Promise<Campaign[]> {
+    return apiClient<Campaign[]>('/messaging-campaigns');
   },
 
   async getById(campaignId: string): Promise<Campaign> {
