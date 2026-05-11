@@ -28,9 +28,9 @@ export const groupApi = {
     });
   },
 
-  async fetchMyGroups(accountId: string): Promise<MyGroupSummary[]> {
+  async fetchMyGroups(accountId: string, signal?: AbortSignal): Promise<MyGroupSummary[]> {
     const params = new URLSearchParams({ accountId });
-    return apiClient<MyGroupSummary[]>(`/groups/my-groups?${params}`);
+    return apiClient<MyGroupSummary[]>(`/groups/my-groups?${params}`, { signal });
   },
 
   async fetchGroupMembers(

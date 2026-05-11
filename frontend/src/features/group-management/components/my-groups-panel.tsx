@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { ZaloAccount } from '../../zalo-accounts/types';
 import { groupApi } from '../api/group-api';
 import type { GroupWithMembers, MyGroupSummary } from '../types';
@@ -22,15 +22,25 @@ export function MyGroupsPanel({
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   const activeAccounts = accounts.filter((a) => a.status === 'active');
 
   async function handleFetchGroups() {
     if (!selectedAccountId) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError(null);
     try {
-      const myGroups = await groupApi.fetchMyGroups(selectedAccountId);
+      const myGroups = await groupApi.fetchMyGroups(selectedAccountId, controller.signal);
+      if (controller.signal.aborted) return;
       const asGroupWithMembers: GroupWithMembers[] = myGroups.map((g: MyGroupSummary) => ({
         groupId: g.groupId,
         name: g.name,
@@ -47,6 +57,7 @@ export function MyGroupsPanel({
       }));
       onGroupsLoaded(asGroupWithMembers);
     } catch (err) {
+      if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách nhóm');
     } finally {
       setLoading(false);

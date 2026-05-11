@@ -10,6 +10,7 @@ const RETRY_DELAY_MS = 1000;
 const MAX_RETRIES = 2;
 const GROUPS_CACHE_TTL_MS = 5 * 60 * 1000;
 const MEMBERS_CACHE_TTL_MS = 10 * 60 * 1000;
+const GROUP_INFO_CHUNK_SIZE = 50;
 
 interface CacheEntry<T> {
   data: T;
@@ -250,7 +251,7 @@ export class ZaloGroupsService {
     if (groupIds.length === 0) return [];
 
     const allSummaries: MyGroupSummary[] = [];
-    const chunkSize = 20;
+    const chunkSize = GROUP_INFO_CHUNK_SIZE;
 
     for (let i = 0; i < groupIds.length; i += chunkSize) {
       if (i > 0) await sleep(RETRY_DELAY_MS);
@@ -331,8 +332,8 @@ export class ZaloGroupsService {
         const msg = err?.message?.toLowerCase?.() ?? '';
         const isRetryable =
           msg.includes('retry limit') ||
-          msg.includes('rate') ||
-          msg.includes('limit') ||
+          msg.includes('rate limit') ||
+          msg.includes('too many') ||
           msg.includes('timeout') ||
           msg.includes('econnreset') ||
           msg === '';
