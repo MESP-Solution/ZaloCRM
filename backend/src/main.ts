@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { WsAdapter } from '@nestjs/platform-ws';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import {
@@ -35,6 +36,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new DomainErrorFilter(), new HttpErrorFilter());
+  app.useWebSocketAdapter(new WsAdapter(app));
   app.enableShutdownHooks();
 
   const swaggerConfig = new DocumentBuilder()

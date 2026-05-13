@@ -31,3 +31,18 @@ export interface LoginWithCookieRequest {
   cookie: object[];
   proxyUrl?: string;
 }
+
+export interface LoginWithQrRequest {
+  displayName?: string;
+  proxyUrl?: string;
+}
+
+export type QrLoginState =
+  | 'idle'
+  | 'loading'
+  | 'qr_ready'
+  | 'scanned'
+  | 'success'
+  | 'error'
+  | 'expired'
+  | 'declined';

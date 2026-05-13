@@ -13,7 +13,9 @@ import { ApiTags, ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { ZaloConnectionService } from './zalo-connection.service';
+import { ZaloQrLoginService } from './zalo-qr-login.service';
 import { LoginWithCookieDto } from './dto/login-with-cookie.dto';
+import { LoginWithQrDto } from './dto/login-with-qr.dto';
 import { FindZaloUsersDto } from './dto/find-zalo-users.dto';
 
 @ApiTags('Zalo Connections')
@@ -21,7 +23,10 @@ import { FindZaloUsersDto } from './dto/find-zalo-users.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('zalo-connections')
 export class ZaloConnectionController {
-  constructor(private readonly connectionService: ZaloConnectionService) {}
+  constructor(
+    private readonly connectionService: ZaloConnectionService,
+    private readonly qrLoginService: ZaloQrLoginService,
+  ) {}
 
   @Post('login-cookie')
   @ApiOperation({
@@ -41,6 +46,25 @@ export class ZaloConnectionController {
       accountId: result.accountId,
       message: 'Zalo account created and connected',
     };
+  }
+
+  @Post('login-qr')
+  @ApiOperation({ summary: 'Start QR code login — creates account, emits QR via WebSocket' })
+  async loginWithQr(@Req() req: Request, @Body() dto: LoginWithQrDto) {
+    const customerId = req.user!.id;
+    const result = await this.qrLoginService.startQrLogin(
+      customerId,
+      dto.displayName ?? 'Zalo Account',
+      dto.proxyUrl,
+    );
+    return { success: true, accountId: result.accountId };
+  }
+
+  @Post('login-qr/cancel')
+  @ApiOperation({ summary: 'Cancel an in-progress QR login' })
+  async cancelQrLogin(@Req() req: Request) {
+    this.qrLoginService.cancelQrLogin(req.user!.id);
+    return { success: true, message: 'QR login cancelled' };
   }
 
   @Post('find-users')

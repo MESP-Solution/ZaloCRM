@@ -7,6 +7,8 @@ import { ZaloConnectionService } from './zalo-connection.service';
 import { ZaloConnectionController } from './zalo-connection.controller';
 import { ZaloCookieEncryptionService } from './zalo-cookie-encryption.service';
 import { ZaloProxyService } from './zalo-proxy.service';
+import { ZaloQrGateway } from './zalo-qr.gateway';
+import { ZaloQrLoginService } from './zalo-qr-login.service';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { ZaloProxyService } from './zalo-proxy.service';
     ZaloConnectionService,
     ZaloCookieEncryptionService,
     ZaloProxyService,
+    ZaloQrGateway,
+    ZaloQrLoginService,
   ],
   exports: [ZaloConnectionService, ZaloConnectionRegistry],
 })

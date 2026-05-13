@@ -295,7 +295,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private acquireLoginLock(accountId: string): void {
+  acquireLoginLock(accountId: string): void {
     if (this.loginInProgress.has(accountId)) {
       throw new ConflictException('Login already in progress for this account');
     }
@@ -305,7 +305,11 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     this.loginInProgress.add(accountId);
   }
 
-  private createZaloInstance(proxyUrl?: string): InstanceType<typeof Zalo> {
+  releaseLoginLock(accountId: string): void {
+    this.loginInProgress.delete(accountId);
+  }
+
+  createZaloInstance(proxyUrl?: string): InstanceType<typeof Zalo> {
     const zaloOptions: Record<string, unknown> = {
       imageMetadataGetter: this.imageMetadataGetter,
     };
@@ -335,7 +339,7 @@ export class ZaloConnectionService implements OnModuleInit, OnModuleDestroy {
     }
   };
 
-  private async handleLoginSuccess(
+  async handleLoginSuccess(
     accountId: string,
     api: API,
     proxyUrl?: string,

@@ -1,5 +1,5 @@
 import { apiClient } from '../../../lib/api/api-client';
-import type { ZaloAccount, UpdateZaloAccountRequest, LoginWithCookieRequest } from '../types';
+import type { ZaloAccount, UpdateZaloAccountRequest, LoginWithCookieRequest, LoginWithQrRequest } from '../types';
 
 export const zaloAccountsApi = {
   list() {
@@ -55,6 +55,27 @@ export const zaloAccountsApi = {
       {
         method: 'POST',
         body: data,
+        credentials: 'include',
+      },
+    );
+  },
+
+  loginWithQr(data: LoginWithQrRequest) {
+    return apiClient<{ success: boolean; accountId: string }>(
+      '/zalo-connections/login-qr',
+      {
+        method: 'POST',
+        body: data,
+        credentials: 'include',
+      },
+    );
+  },
+
+  cancelQrLogin() {
+    return apiClient<{ success: boolean; message: string }>(
+      '/zalo-connections/login-qr/cancel',
+      {
+        method: 'POST',
         credentials: 'include',
       },
     );
