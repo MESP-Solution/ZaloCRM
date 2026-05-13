@@ -6,16 +6,16 @@ import { ZaloProviderModule } from '../zalo-provider/zalo-provider.module';
 import { JwtAuthModule } from '../../common/jwt/jwt-auth.module';
 import { AppConfigModule } from '../../config/app-config.module';
 import { MessagingCampaignsController } from './messaging-campaigns.controller';
-import { MessagingCampaignsService } from './messaging-campaigns.service';
-import { QuotaService } from './quota.service';
-import { CampaignDispatchService } from './campaign-dispatch.service';
-import { CampaignStatsService } from './campaign-stats.service';
-import { CampaignSchedulerService } from './campaign-scheduler.service';
-import { MessagingCampaign } from './messaging-campaign.entity';
-import { CampaignZaloAccount } from './campaign-zalo-account.entity';
-import { CampaignRecipient } from './campaign-recipient.entity';
-import { DeliveryAttempt } from './delivery-attempt.entity';
-import { DailyAccountUsage } from './daily-account-usage.entity';
+import { MessagingCampaignsService } from './services/messaging-campaigns.service';
+import { QuotaService } from './services/quota.service';
+import { CampaignDispatchService } from './services/campaign-dispatch.service';
+import { CampaignStatsService } from './services/campaign-stats.service';
+import { CampaignSchedulerService } from './services/campaign-scheduler.service';
+import { MessagingCampaign } from './entities/messaging-campaign.entity';
+import { CampaignZaloAccount } from './entities/campaign-zalo-account.entity';
+import { CampaignRecipient } from './entities/campaign-recipient.entity';
+import { DeliveryAttempt } from './entities/delivery-attempt.entity';
+import { DailyAccountUsage } from './entities/daily-account-usage.entity';
 
 @Module({
   imports: [

@@ -22,9 +22,9 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../common/auth/roles.guard';
 import { CreateMessagingCampaignDto } from './dto/create-messaging-campaign.dto';
-import { MessagingCampaignsService } from './messaging-campaigns.service';
-import { CampaignDispatchService } from './campaign-dispatch.service';
-import { CampaignStatsService } from './campaign-stats.service';
+import { MessagingCampaignsService } from './services/messaging-campaigns.service';
+import { CampaignDispatchService } from './services/campaign-dispatch.service';
+import { CampaignStatsService } from './services/campaign-stats.service';
 
 @ApiTags('Messaging Campaigns')
 @ApiCookieAuth('access_token')

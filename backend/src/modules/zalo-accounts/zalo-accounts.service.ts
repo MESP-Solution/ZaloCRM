@@ -3,10 +3,10 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { ZaloAccount, ZaloAccountStatus } from './zalo-account.entity';
 import { CustomerAccount } from '../customers/customer-account.entity';
-import { DailyAccountUsage } from '../messaging-campaigns/daily-account-usage.entity';
-import { DeliveryAttempt } from '../messaging-campaigns/delivery-attempt.entity';
-import { CampaignZaloAccount } from '../messaging-campaigns/campaign-zalo-account.entity';
-import { CampaignRecipient } from '../messaging-campaigns/campaign-recipient.entity';
+import { DailyAccountUsage } from '../messaging-campaigns/entities/daily-account-usage.entity';
+import { DeliveryAttempt } from '../messaging-campaigns/entities/delivery-attempt.entity';
+import { CampaignZaloAccount } from '../messaging-campaigns/entities/campaign-zalo-account.entity';
+import { CampaignRecipient } from '../messaging-campaigns/entities/campaign-recipient.entity';
 
 @Injectable()
 export class ZaloAccountsService {

@@ -18,7 +18,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/jwt/jwt-auth.guard';
 import { ZaloAccountsService } from './zalo-accounts.service';
 import { ZaloConnectionService } from '../zalo-connection/zalo-connection.service';
-import { QuotaService } from '../messaging-campaigns/quota.service';
+import { QuotaService } from '../messaging-campaigns/services/quota.service';
 import { UpdateZaloAccountDto } from './dto/update-zalo-account.dto';
 import { ZaloConnectionRegistry } from '../zalo-connection/zalo-connection-registry';
 import { ThreadType } from 'zca-js';
