@@ -19,6 +19,8 @@ export type MessagingCampaignStatus =
   | 'failed'
   | 'cancelled';
 
+export type MessagingCampaignType = 'stranger' | 'friend';
+
 @Entity()
 export class MessagingCampaign {
   @PrimaryKey({ type: 'string' })
@@ -48,6 +50,9 @@ export class MessagingCampaign {
   })
   status!: MessagingCampaignStatus;
 
+  @Enum({ items: () => ['stranger', 'friend'], default: 'stranger' })
+  campaignType!: MessagingCampaignType;
+
   @Property({ type: 'string', nullable: true })
   imageFilePath?: string;
 
@@ -75,5 +80,6 @@ export class MessagingCampaign {
     this.name = name;
     this.messageText = messageText;
     this.status = 'draft';
+    this.campaignType = 'stranger';
   }
 }

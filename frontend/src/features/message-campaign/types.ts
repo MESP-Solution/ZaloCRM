@@ -10,6 +10,8 @@ export interface PhoneEntry {
   gender?: number;
 }
 
+export type CampaignType = 'stranger' | 'friend';
+
 export interface CampaignFormData {
   campaignName: string;
   selectedZaloAccountIds: string[];
@@ -17,7 +19,9 @@ export interface CampaignFormData {
   startDate: string;
   messageContent: string;
   imageFile?: File;
+  campaignType: CampaignType;
 }
+
 
 export interface CampaignRecipientPayload {
   phoneNumber: string;

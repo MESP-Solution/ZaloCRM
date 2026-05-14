@@ -25,6 +25,7 @@ interface CreateCampaignPayload {
   recipients: { phone?: string; zaloId?: string; name?: string; gender?: number }[];
   scheduleAt?: string;
   imageFilePath?: string;
+  campaignType?: 'stranger' | 'friend';
 }
 
 interface CreateCampaignResponse {

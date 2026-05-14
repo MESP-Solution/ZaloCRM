@@ -204,7 +204,9 @@ export class CampaignDispatchService implements OnModuleInit {
     | 'paused_quota_exhausted'
     | 'paused_no_available_account'
   > {
-    if (!recipient.recipientZaloId && recipient.recipientPhone) {
+    const isFriendCampaign = campaign.campaignType === 'friend';
+
+    if (!isFriendCampaign && !recipient.recipientZaloId && recipient.recipientPhone) {
       const activeAccountIds = accounts
         .filter((a) => a.status === 'active')
         .map((a) => a.zaloAccount.id);
@@ -236,14 +238,16 @@ export class CampaignDispatchService implements OnModuleInit {
     await em.flush();
 
     const activeAccounts = accounts.filter((a) => a.status === 'active');
-    const leastUsedId = await this.quotaService.getLeastUsedAccountId(
-      activeAccounts.map((a) => a.zaloAccount.id),
-      em,
-    );
-    if (leastUsedId) {
-      activeAccounts.sort((a, b) =>
-        a.zaloAccount.id === leastUsedId ? -1 : b.zaloAccount.id === leastUsedId ? 1 : 0,
+    if (!isFriendCampaign) {
+      const leastUsedId = await this.quotaService.getLeastUsedAccountId(
+        activeAccounts.map((a) => a.zaloAccount.id),
+        em,
       );
+      if (leastUsedId) {
+        activeAccounts.sort((a, b) =>
+          a.zaloAccount.id === leastUsedId ? -1 : b.zaloAccount.id === leastUsedId ? 1 : 0,
+        );
+      }
     }
 
     if (activeAccounts.length === 0) {
@@ -266,15 +270,17 @@ export class CampaignDispatchService implements OnModuleInit {
         await this.sleep(5000);
       }
 
-      const canSend = await this.quotaService.canSend(
-        campaignAccount.zaloAccount.id,
-        em,
-      );
+      if (!isFriendCampaign) {
+        const canSend = await this.quotaService.canSend(
+          campaignAccount.zaloAccount.id,
+          em,
+        );
 
-      if (!canSend) {
-        campaignAccount.status = 'quota_exhausted';
+        if (!canSend) {
+          campaignAccount.status = 'quota_exhausted';
 
-        continue;
+          continue;
+        }
       }
 
       attemptNumber += 1;
@@ -294,10 +300,12 @@ export class CampaignDispatchService implements OnModuleInit {
         recipient.providerMessageId = attempt.providerMessageId;
 
         campaign.sentCount += 1;
-        await this.quotaService.incrementDailySent(
-          campaignAccount.zaloAccount.id,
-          em,
-        );
+        if (!isFriendCampaign) {
+          await this.quotaService.incrementDailySent(
+            campaignAccount.zaloAccount.id,
+            em,
+          );
+        }
         return 'sent';
       }
 

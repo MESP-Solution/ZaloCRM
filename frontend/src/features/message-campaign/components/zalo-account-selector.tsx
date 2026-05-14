@@ -11,6 +11,7 @@ interface Props {
   loading: boolean;
   selectedIds: string[];
   quotaMap?: Map<string, QuotaInfo>;
+  hideQuota?: boolean;
   onChange: (ids: string[]) => void;
 }
 
@@ -22,7 +23,7 @@ const STATUS_LABELS: Record<ZaloAccount['status'], string> = {
   restricted: 'Bị hạn chế',
 };
 
-export function ZaloAccountSelector({ accounts, loading, selectedIds, quotaMap, onChange }: Props) {
+export function ZaloAccountSelector({ accounts, loading, selectedIds, quotaMap, hideQuota, onChange }: Props) {
   function toggleAccount(account: ZaloAccount) {
     if (account.status !== 'active') return;
 
@@ -79,7 +80,9 @@ export function ZaloAccountSelector({ accounts, loading, selectedIds, quotaMap, 
                     <span className={active ? 'text-xs font-medium text-emerald-700' : 'text-xs font-medium text-gray-500'}>
                       {STATUS_LABELS[account.status]}
                     </span>
-                    {quota && (
+                    {hideQuota ? (
+                      <span className="text-xs font-medium text-green-600">Không giới hạn</span>
+                    ) : quota && (
                       <div className="flex items-center gap-1.5">
                         <div className="h-1.5 w-14 overflow-hidden rounded-full bg-gray-100">
                           <div

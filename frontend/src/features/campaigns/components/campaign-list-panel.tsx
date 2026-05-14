@@ -103,9 +103,16 @@ export function CampaignListPanel() {
               return (
                 <tr key={campaign.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <Link href={`/campaigns/${campaign.id}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">
-                      {campaign.name}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/campaigns/${campaign.id}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">
+                        {campaign.name}
+                      </Link>
+                      {campaign.campaignType === 'friend' ? (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Bạn bè</span>
+                      ) : (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Người lạ</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <CampaignStatusBadge status={campaign.status} />

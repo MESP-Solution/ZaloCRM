@@ -75,6 +75,7 @@ export class MessagingCampaignsController {
       dto.recipients,
       dto.scheduleAt ? new Date(dto.scheduleAt) : undefined,
       dto.imageFilePath,
+      dto.campaignType,
     );
   }
 

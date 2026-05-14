@@ -47,7 +47,7 @@ export function validateCampaign(
   }
 
   if (selectedRecipients.length === 0) {
-    blockers.push('Chọn ít nhất 1 người nhận từ danh sách SĐT.');
+    blockers.push('Chọn ít nhất 1 người nhận.');
   }
 
   if (formData.startMode === 'scheduled' && !formData.startDate) {

@@ -108,6 +108,11 @@ export function CampaignDetailPanel({ campaignId }: Props) {
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-gray-950">{campaign.name}</h1>
           <CampaignStatusBadge status={campaign.status} />
+          {campaign.campaignType === 'friend' ? (
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Bạn bè</span>
+          ) : (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Người lạ</span>
+          )}
         </div>
         <CampaignActionBar status={campaign.status} loading={actionLoading} onAction={handleAction} />
       </div>

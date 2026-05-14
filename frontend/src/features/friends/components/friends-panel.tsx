@@ -82,6 +82,19 @@ export function FriendsPanel() {
     });
   }
 
+  function handleCreateFriendCampaign() {
+    const selectedFriends = friends.filter((f) => selectedFriendIds.has(f.userId));
+    const recipients = selectedFriends.map((f) => ({
+      zaloId: f.userId,
+      name: f.displayName || f.zaloName || '',
+      gender: f.gender,
+      avatar: f.avatar,
+    }));
+    sessionStorage.setItem('friendCampaignRecipients', JSON.stringify(recipients));
+    sessionStorage.setItem('friendCampaignAccountId', selectedAccountId);
+    window.location.href = '/message-with-phone?source=friend';
+  }
+
   async function fetchRelatedGroups() {
     if (selectedFriendIds.size === 0 || !selectedAccountId) return;
     setGroupsLoading(true);
@@ -152,6 +165,14 @@ export function FriendsPanel() {
               className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
             >
               {groupsLoading ? 'Đang tải...' : 'Xem nhóm liên quan'}
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateFriendCampaign}
+              disabled={!selectedAccountId}
+              className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              Tạo chiến dịch
             </button>
           </>
         )}

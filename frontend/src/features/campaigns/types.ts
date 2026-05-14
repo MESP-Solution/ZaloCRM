@@ -13,6 +13,7 @@ export interface Campaign {
   id: string;
   name: string;
   status: CampaignStatus;
+  campaignType?: 'stranger' | 'friend';
   queuedCount: number;
   sentCount: number;
   failedCount: number;

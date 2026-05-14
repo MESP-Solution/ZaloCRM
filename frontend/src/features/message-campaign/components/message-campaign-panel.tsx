@@ -22,11 +22,13 @@ const DEFAULT_FORM: CampaignFormData = {
   startMode: 'now',
   startDate: '',
   messageContent: '',
+  campaignType: 'stranger',
 };
 
 export function MessageCampaignPanel() {
   const searchParams = useSearchParams();
   const isFromGroup = searchParams.get('source') === 'group';
+  const isFromFriend = searchParams.get('source') === 'friend';
   const [formData, setFormData] = useState<CampaignFormData>(DEFAULT_FORM);
   const [zaloAccounts, setZaloAccounts] = useState<ZaloAccount[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
@@ -34,6 +36,7 @@ export function MessageCampaignPanel() {
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [selectedEntries, setSelectedEntries] = useState<PhoneEntry[]>([]);
   const [groupEntries, setGroupEntries] = useState<PhoneEntry[]>([]);
+  const [friendEntries, setFriendEntries] = useState<PhoneEntry[]>([]);
   const [totalContacts, setTotalContacts] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [quotaMap, setQuotaMap] = useState<Map<string, { used: number; dailyLimit: number }>>(new Map());
@@ -71,6 +74,38 @@ export function MessageCampaignPanel() {
       sessionStorage.removeItem('group-campaign-account-id');
     } catch { /* ignore parse errors */ }
   }, [isFromGroup]);
+
+  useEffect(() => {
+    if (!isFromFriend) return;
+    try {
+      const raw = sessionStorage.getItem('friendCampaignRecipients');
+      const accountId = sessionStorage.getItem('friendCampaignAccountId');
+      if (!raw) return;
+
+      const recipients = JSON.parse(raw) as { zaloId: string; name: string; gender?: number; avatar?: string }[];
+      const entries: PhoneEntry[] = recipients.map((r, i) => ({
+        id: `friend-${i}-${r.zaloId}`,
+        phoneNumber: '',
+        inputPhoneNumber: '',
+        zaloName: r.name,
+        avatarUrl: r.avatar || '',
+        zaloUid: r.zaloId,
+        gender: r.gender,
+      }));
+
+      setFriendEntries(entries);
+      setSelectedEntries(entries);
+      setTotalContacts(entries.length);
+      setFormData((prev) => ({
+        ...prev,
+        campaignType: 'friend',
+        selectedZaloAccountIds: accountId ? [accountId] : prev.selectedZaloAccountIds,
+      }));
+
+      sessionStorage.removeItem('friendCampaignRecipients');
+      sessionStorage.removeItem('friendCampaignAccountId');
+    } catch { /* ignore parse errors */ }
+  }, [isFromFriend]);
 
   useEffect(() => {
     let active = true;
@@ -128,13 +163,14 @@ export function MessageCampaignPanel() {
         imageFilePath = uploadResult.filePath;
       }
 
+      const isFriend = formData.campaignType === 'friend';
       const campaign = await messageCampaignApi.createCampaign({
         customerId,
         name: formData.campaignName.trim(),
         messageText: formData.messageContent.trim(),
         zaloAccountIds: selectedActiveAccounts.map((a) => a.id),
         recipients: selectedEntries.map((entry) => ({
-          phone: isFromGroup ? undefined : entry.inputPhoneNumber,
+          phone: (isFromGroup || isFriend) ? undefined : entry.inputPhoneNumber,
           zaloId: entry.zaloUid,
           name: entry.zaloName,
           gender: entry.gender,
@@ -144,6 +180,7 @@ export function MessageCampaignPanel() {
             ? new Date(formData.startDate).toISOString()
             : undefined,
         imageFilePath,
+        campaignType: formData.campaignType,
       });
 
       if (formData.startMode === 'now') {
@@ -183,7 +220,46 @@ export function MessageCampaignPanel() {
       )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        {groupEntries.length > 0 ? (
+        {friendEntries.length > 0 ? (
+          <section className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-950">
+                Người nhận từ bạn bè ({friendEntries.length})
+              </h2>
+              <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                Không giới hạn quota
+              </span>
+            </div>
+            <div className="max-h-[400px] overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-gray-50">
+                  <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500">
+                    <th className="px-3 py-2">Avatar</th>
+                    <th className="px-3 py-2">Tên</th>
+                    <th className="px-3 py-2">Giới tính</th>
+                    <th className="px-3 py-2">Zalo ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {friendEntries.map((entry) => (
+                    <tr key={entry.id} className="border-b border-gray-100">
+                      <td className="px-3 py-2">
+                        {entry.avatarUrl ? (
+                          <img src={entry.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs text-gray-500">?</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-gray-900">{entry.zaloName}</td>
+                      <td className="px-3 py-2 text-gray-600">{entry.gender === 0 ? 'Nam' : entry.gender === 1 ? 'Nữ' : '-'}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-gray-400">{entry.zaloUid}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : groupEntries.length > 0 ? (
           <section className="rounded-lg border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-base font-semibold text-gray-950">
               Người nhận từ nhóm ({groupEntries.length})
@@ -222,6 +298,7 @@ export function MessageCampaignPanel() {
             loading={loadingAccounts}
             selectedIds={formData.selectedZaloAccountIds}
             quotaMap={quotaMap}
+            hideQuota={formData.campaignType === 'friend'}
             onChange={(selectedZaloAccountIds) => setFormData({ ...formData, selectedZaloAccountIds })}
           />
           <MessageComposerPanel formData={formData} previewRecipient={previewRecipient} onChange={setFormData} />

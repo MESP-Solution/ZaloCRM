@@ -9,6 +9,7 @@ import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import {
   MessagingCampaign,
   MessagingCampaignStatus,
+  MessagingCampaignType,
 } from '../entities/messaging-campaign.entity';
 import { CampaignZaloAccount } from '../entities/campaign-zalo-account.entity';
 import { CampaignRecipient } from '../entities/campaign-recipient.entity';
@@ -45,6 +46,7 @@ export class MessagingCampaignsService {
     recipients: RecipientInput[],
     scheduleAt?: Date,
     imageFilePath?: string,
+    campaignType?: MessagingCampaignType,
   ): Promise<MessagingCampaign> {
     const customer = await this.customersService.findById(customerId);
     if (!customer) {
@@ -75,6 +77,9 @@ export class MessagingCampaignsService {
     );
 
     const campaign = new MessagingCampaign(customer, name, messageText);
+    if (campaignType) {
+      campaign.campaignType = campaignType;
+    }
     if (imageFilePath) {
       campaign.imageFilePath = imageFilePath;
     }
