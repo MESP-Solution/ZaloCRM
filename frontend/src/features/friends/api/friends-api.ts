@@ -9,14 +9,4 @@ export const friendsApi = {
     });
   },
 
-  getRelatedGroups(friendIds: string[], accountId?: string) {
-    return apiClient<Record<string, string[]>>(
-      '/zalo-connections/friends/related-groups',
-      {
-        method: 'POST',
-        body: { friendIds, accountId },
-        credentials: 'include',
-      },
-    );
-  },
 };

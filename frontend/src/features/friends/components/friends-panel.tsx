@@ -16,8 +16,6 @@ export function FriendsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(new Set());
-  const [relatedGroups, setRelatedGroups] = useState<Record<string, string[]> | null>(null);
-  const [groupsLoading, setGroupsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
 
@@ -95,22 +93,6 @@ export function FriendsPanel() {
     window.location.href = '/message-with-phone?source=friend';
   }
 
-  async function fetchRelatedGroups() {
-    if (selectedFriendIds.size === 0 || !selectedAccountId) return;
-    setGroupsLoading(true);
-    try {
-      const result = await friendsApi.getRelatedGroups(
-        [...selectedFriendIds],
-        selectedAccountId,
-      );
-      setRelatedGroups(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải nhóm liên quan');
-    } finally {
-      setGroupsLoading(false);
-    }
-  }
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const activeAccounts = accounts.filter((a) => a.status === 'active');
@@ -158,14 +140,6 @@ export function FriendsPanel() {
         {selectedFriendIds.size > 0 && (
           <>
             <span>· {selectedFriendIds.size} đã chọn</span>
-            <button
-              type="button"
-              onClick={fetchRelatedGroups}
-              disabled={groupsLoading}
-              className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {groupsLoading ? 'Đang tải...' : 'Xem nhóm liên quan'}
-            </button>
             <button
               type="button"
               onClick={handleCreateFriendCampaign}
@@ -278,23 +252,6 @@ export function FriendsPanel() {
         </>
       )}
 
-      {relatedGroups && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <h3 className="mb-2 text-sm font-medium text-gray-700">
-            Kết quả getRelatedFriendGroup
-          </h3>
-          <pre className="max-h-64 overflow-auto rounded bg-white p-3 text-xs text-gray-600">
-            {JSON.stringify(relatedGroups, null, 2)}
-          </pre>
-          <button
-            type="button"
-            onClick={() => setRelatedGroups(null)}
-            className="mt-2 text-xs text-gray-400 hover:text-gray-600"
-          >
-            Đóng
-          </button>
-        </div>
-      )}
     </div>
   );
 }
