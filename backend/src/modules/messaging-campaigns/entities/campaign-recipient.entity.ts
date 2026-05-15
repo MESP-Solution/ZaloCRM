@@ -48,6 +48,9 @@ export class CampaignRecipient {
   @Property({ type: 'string', nullable: true, length: 2048 })
   errorMessage?: string;
 
+  @Property({ type: 'boolean' })
+  isFriend: boolean = false;
+
   @Property({ type: 'int' })
   attemptCount: number = 0;
 

@@ -47,6 +47,7 @@ export interface CampaignRecipient {
   recipientPhone?: string;
   recipientZaloId?: string;
   recipientName?: string;
+  isFriend?: boolean;
   status: string;
   errorMessage?: string;
 }

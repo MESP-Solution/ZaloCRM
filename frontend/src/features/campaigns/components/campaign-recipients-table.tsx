@@ -67,7 +67,14 @@ export function CampaignRecipientsTable({ campaignId, refreshKey }: Props) {
             <tbody className="divide-y divide-gray-100">
               {recipients.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-4 py-2 text-sm text-gray-900">{r.recipientName || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-900">
+                    {r.recipientName || '-'}
+                    {r.isFriend && (
+                      <span className="ml-1.5 inline-flex rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                        Bạn bè
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2 text-sm text-gray-600">{r.recipientPhone || r.recipientZaloId || '-'}</td>
                   <td className="px-4 py-2">
                     <RecipientStatusBadge status={r.status} />
@@ -108,6 +115,7 @@ export function CampaignRecipientsTable({ campaignId, refreshKey }: Props) {
 function RecipientStatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
     queued: { label: 'Chờ', className: 'bg-gray-100 text-gray-600' },
+    sending: { label: 'Đang gửi', className: 'bg-blue-100 text-blue-700' },
     sent: { label: 'Đã gửi', className: 'bg-green-100 text-green-700' },
     failed: { label: 'Lỗi', className: 'bg-red-100 text-red-700' },
     skipped: { label: 'Bỏ qua', className: 'bg-yellow-100 text-yellow-700' },

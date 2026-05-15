@@ -14,6 +14,7 @@ import { QuotaService } from './quota.service';
 import { ZALO_PROVIDER } from '../../zalo-provider/zalo-provider.port';
 import type { ZaloProviderPort } from '../../zalo-provider/zalo-provider.port';
 import { AppConfigService } from '../../../config/app-config.service';
+import { ZaloConnectionService } from '../../zalo-connection/zalo-connection.service';
 import { resolveMessagePlaceholders } from '../utils/resolve-message-placeholders';
 
 @Injectable()
@@ -28,6 +29,7 @@ export class CampaignDispatchService implements OnModuleInit {
     @Inject(ZALO_PROVIDER)
     private readonly zaloProvider: ZaloProviderPort,
     private readonly appConfig: AppConfigService,
+    private readonly zaloConnectionService: ZaloConnectionService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -112,6 +114,24 @@ export class CampaignDispatchService implements OnModuleInit {
     const em = this.em.fork();
     const delayMs = this.appConfig.campaignSendDelayMs;
 
+    const initialCampaign = await em.findOne(
+      MessagingCampaign,
+      { id: campaignId },
+      { populate: ['customer'] },
+    );
+    if (!initialCampaign) return;
+
+    const accounts = await em.find(
+      CampaignZaloAccount,
+      { campaign: { id: campaignId } },
+      { populate: ['zaloAccount'] },
+    );
+
+    const friendSets = await this.loadFriendSets(
+      initialCampaign.customer.id,
+      accounts,
+    );
+
     while (true) {
       em.clear();
       const campaign = await em.findOne(MessagingCampaign, {
@@ -149,7 +169,7 @@ export class CampaignDispatchService implements OnModuleInit {
         return;
       }
 
-      const accounts = await em.find(
+      const currentAccounts = await em.find(
         CampaignZaloAccount,
         { campaign: { id: campaignId } },
         { populate: ['zaloAccount'] },
@@ -159,7 +179,8 @@ export class CampaignDispatchService implements OnModuleInit {
         em,
         campaign,
         recipient,
-        accounts,
+        currentAccounts,
+        friendSets,
       );
 
       if (result === 'paused_quota_exhausted') {
@@ -187,6 +208,32 @@ export class CampaignDispatchService implements OnModuleInit {
     }
   }
 
+  private async loadFriendSets(
+    customerId: string,
+    accounts: CampaignZaloAccount[],
+  ): Promise<Map<string, Set<string>>> {
+    const friendSets = new Map<string, Set<string>>();
+    for (const ca of accounts) {
+      try {
+        const friends = await this.zaloConnectionService.getAllFriends(
+          customerId,
+          ca.zaloAccount.id,
+        );
+        const uidSet = new Set(
+          (friends as Array<{ userId: string }>).map((f) => f.userId),
+        );
+        friendSets.set(ca.zaloAccount.id, uidSet);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Failed to load friend list for account=${ca.zaloAccount.id}: ${msg} — treating all recipients as strangers`,
+        );
+        friendSets.set(ca.zaloAccount.id, new Set());
+      }
+    }
+    return friendSets;
+  }
+
   private jitteredDelay(baseMs: number): number {
     const jitter = Math.floor(Math.random() * 10000) - 5000;
     return Math.max(5000, baseMs + jitter);
@@ -197,6 +244,7 @@ export class CampaignDispatchService implements OnModuleInit {
     campaign: MessagingCampaign,
     recipient: CampaignRecipient,
     accounts: CampaignZaloAccount[],
+    friendSets: Map<string, Set<string>>,
   ): Promise<
     | 'sent'
     | 'failed'
@@ -270,7 +318,12 @@ export class CampaignDispatchService implements OnModuleInit {
         await this.sleep(5000);
       }
 
-      if (!isFriendCampaign) {
+      const isFriendOfAccount = friendSets
+        .get(campaignAccount.zaloAccount.id)
+        ?.has(recipient.recipientZaloId!) ?? false;
+      recipient.isFriend = isFriendOfAccount;
+
+      if (!isFriendOfAccount) {
         const canSend = await this.quotaService.canSend(
           campaignAccount.zaloAccount.id,
           em,
@@ -300,7 +353,7 @@ export class CampaignDispatchService implements OnModuleInit {
         recipient.providerMessageId = attempt.providerMessageId;
 
         campaign.sentCount += 1;
-        if (!isFriendCampaign) {
+        if (!isFriendOfAccount) {
           await this.quotaService.incrementDailySent(
             campaignAccount.zaloAccount.id,
             em,

@@ -5,6 +5,7 @@ import { ZaloAccountsModule } from '../zalo-accounts/zalo-accounts.module';
 import { ZaloProviderModule } from '../zalo-provider/zalo-provider.module';
 import { JwtAuthModule } from '../../common/jwt/jwt-auth.module';
 import { AppConfigModule } from '../../config/app-config.module';
+import { ZaloConnectionModule } from '../zalo-connection/zalo-connection.module';
 import { MessagingCampaignsController } from './messaging-campaigns.controller';
 import { MessagingCampaignsService } from './services/messaging-campaigns.service';
 import { QuotaService } from './services/quota.service';
@@ -31,6 +32,7 @@ import { DailyAccountUsage } from './entities/daily-account-usage.entity';
     ZaloProviderModule,
     JwtAuthModule,
     AppConfigModule,
+    ZaloConnectionModule,
   ],
   controllers: [MessagingCampaignsController],
   providers: [
