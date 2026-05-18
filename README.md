@@ -1,4 +1,4 @@
-# ZaloMKT
+# ZaloMKTs
 
 Backend service built with NestJS.
 
