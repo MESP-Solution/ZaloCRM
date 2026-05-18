@@ -3,7 +3,7 @@ export interface SendZaloMessageCommand {
   recipientId: string;
   text: string;
   campaignId?: string;
-  imageFilePath?: string;
+  imageFilePaths?: string[];
 }
 
 export interface SendZaloMessageResult {

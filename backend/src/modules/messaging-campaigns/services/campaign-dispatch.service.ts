@@ -441,7 +441,7 @@ export class CampaignDispatchService implements OnModuleInit {
           recipientId: recipient.recipientZaloId!,
           text: resolvedText,
           campaignId: campaign.id,
-          imageFilePath: campaign.imageFilePath,
+          imageFilePaths: campaign.imageFilePaths,
         });
         attempt.status = 'sent';
         attempt.providerMessageId = result.providerMessageId;

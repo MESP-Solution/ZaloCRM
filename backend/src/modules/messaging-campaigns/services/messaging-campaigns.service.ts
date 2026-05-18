@@ -45,7 +45,7 @@ export class MessagingCampaignsService {
     zaloAccountIds: string[],
     recipients: RecipientInput[],
     scheduleAt?: Date,
-    imageFilePath?: string,
+    imageFilePaths?: string[],
     campaignType?: MessagingCampaignType,
   ): Promise<MessagingCampaign> {
     const customer = await this.customersService.findById(customerId);
@@ -80,8 +80,8 @@ export class MessagingCampaignsService {
     if (campaignType) {
       campaign.campaignType = campaignType;
     }
-    if (imageFilePath) {
-      campaign.imageFilePath = imageFilePath;
+    if (imageFilePaths?.length) {
+      campaign.imageFilePaths = imageFilePaths;
     }
     if (scheduleAt) {
       campaign.scheduleAt = scheduleAt;

@@ -34,8 +34,8 @@ export class ZaloProviderLiveService implements ZaloProviderPort {
       throw new Error('Cannot send message to self (sender UID === recipient UID)');
     }
 
-    const message = command.imageFilePath
-      ? { msg: command.text, attachments: [command.imageFilePath] }
+    const message = command.imageFilePaths?.length
+      ? { msg: command.text, attachments: command.imageFilePaths }
       : command.text;
 
     try {

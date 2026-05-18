@@ -24,7 +24,7 @@ interface CreateCampaignPayload {
   zaloAccountIds: string[];
   recipients: { phone?: string; zaloId?: string; name?: string; gender?: number }[];
   scheduleAt?: string;
-  imageFilePath?: string;
+  imageFilePaths?: string[];
   campaignType?: 'stranger' | 'friend';
 }
 
@@ -103,12 +103,12 @@ export const messageCampaignApi = {
     };
   },
 
-  async uploadImage(file: File): Promise<{ filePath: string }> {
+  async uploadImages(files: File[]): Promise<{ filePaths: string[] }> {
     const formData = new FormData();
-    formData.append('image', file);
+    files.forEach((f) => formData.append('images', f));
 
     const base = appConfig.apiBaseUrl.replace(/\/+$/, '');
-    const response = await fetch(`${base}/messaging-campaigns/upload-image`, {
+    const response = await fetch(`${base}/messaging-campaigns/upload-images`, {
       method: 'POST',
       body: formData,
       credentials: 'include',
@@ -122,7 +122,7 @@ export const messageCampaignApi = {
         payload,
       );
     }
-    return payload as { filePath: string };
+    return payload as { filePaths: string[] };
   },
 
   async createCampaign(payload: CreateCampaignPayload): Promise<CreateCampaignResponse> {

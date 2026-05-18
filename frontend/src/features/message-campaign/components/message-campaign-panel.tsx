@@ -22,6 +22,7 @@ const DEFAULT_FORM: CampaignFormData = {
   startMode: 'now',
   startDate: '',
   messageContent: '',
+  imageFiles: [],
   campaignType: 'stranger',
 };
 
@@ -157,10 +158,10 @@ export function MessageCampaignPanel() {
       const meResponse = await authApi.me();
       const customerId = meResponse.user.id;
 
-      let imageFilePath: string | undefined;
-      if (formData.imageFile) {
-        const uploadResult = await messageCampaignApi.uploadImage(formData.imageFile);
-        imageFilePath = uploadResult.filePath;
+      let imageFilePaths: string[] | undefined;
+      if (formData.imageFiles.length > 0) {
+        const uploadResult = await messageCampaignApi.uploadImages(formData.imageFiles);
+        imageFilePaths = uploadResult.filePaths;
       }
 
       const isFriend = formData.campaignType === 'friend';
@@ -179,7 +180,7 @@ export function MessageCampaignPanel() {
           formData.startMode === 'scheduled'
             ? new Date(formData.startDate).toISOString()
             : undefined,
-        imageFilePath,
+        imageFilePaths,
         campaignType: formData.campaignType,
       });
 

@@ -18,7 +18,7 @@ export interface CampaignFormData {
   startMode: CampaignStartMode;
   startDate: string;
   messageContent: string;
-  imageFile?: File;
+  imageFiles: File[];
   campaignType: CampaignType;
 }
 

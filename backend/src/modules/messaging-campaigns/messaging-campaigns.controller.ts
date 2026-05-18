@@ -9,11 +9,11 @@ import {
   Post,
   Query,
   Req,
-  UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiCookieAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -37,12 +37,12 @@ export class MessagingCampaignsController {
     private readonly campaignStatsService: CampaignStatsService,
   ) {}
 
-  @Post('upload-image')
+  @Post('upload-images')
   @Roles('customer')
-  @ApiOperation({ summary: 'Upload a campaign image' })
+  @ApiOperation({ summary: 'Upload campaign images (max 5)' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
-    FileInterceptor('image', {
+    FilesInterceptor('images', 5, {
       storage: diskStorage({
         destination: join(process.cwd(), 'uploads', 'campaign-images'),
         filename: (_req, file, cb) => {
@@ -59,8 +59,8 @@ export class MessagingCampaignsController {
       },
     }),
   )
-  uploadImage(@UploadedFile() file: Express.Multer.File) {
-    return { filePath: file.path };
+  uploadImages(@UploadedFiles() files: Express.Multer.File[]) {
+    return { filePaths: files.map((f) => f.path) };
   }
 
   @Post()
@@ -74,7 +74,7 @@ export class MessagingCampaignsController {
       dto.zaloAccountIds,
       dto.recipients,
       dto.scheduleAt ? new Date(dto.scheduleAt) : undefined,
-      dto.imageFilePath,
+      dto.imageFilePaths,
       dto.campaignType,
     );
   }

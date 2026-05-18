@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsOptional, IsString, ArrayNotEmpty } from 'class-validator';
+import { IsArray, IsIn, IsOptional, IsString, ArrayNotEmpty, ArrayMaxSize } from 'class-validator';
 
 export class CreateMessagingCampaignDto {
   @IsOptional()
@@ -25,8 +25,10 @@ export class CreateMessagingCampaignDto {
   scheduleAt?: string;
 
   @IsOptional()
-  @IsString()
-  imageFilePath?: string;
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  imageFilePaths?: string[];
 
   @IsOptional()
   @IsIn(['stranger', 'friend'])

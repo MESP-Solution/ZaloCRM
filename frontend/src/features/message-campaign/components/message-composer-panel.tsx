@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import type { CampaignFormData, PhoneEntry } from '../types';
 
 interface Props {
@@ -23,6 +23,7 @@ function renderPreview(message: string, recipient?: PhoneEntry): string {
     .replaceAll('{gender}', resolveGender(recipient?.gender));
 }
 
+const MAX_IMAGES = 5;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
@@ -35,33 +36,53 @@ export function MessageComposerPanel({ formData, previewRecipient, onChange }: P
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const imagePreviewUrl = useMemo(
-    () => (formData.imageFile ? URL.createObjectURL(formData.imageFile) : null),
-    [formData.imageFile],
-  );
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = formData.imageFiles.map((f) => URL.createObjectURL(f));
+    setImagePreviewUrls(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [formData.imageFiles]);
 
   function update(partial: Partial<CampaignFormData>) {
     onChange({ ...formData, ...partial });
   }
 
   function handleImageSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
 
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      alert('Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP).');
+    const remaining = MAX_IMAGES - formData.imageFiles.length;
+    if (remaining <= 0) {
+      alert(`Tối đa ${MAX_IMAGES} ảnh.`);
       return;
     }
-    if (file.size > MAX_IMAGE_SIZE) {
-      alert('Ảnh tối đa 5MB.');
-      return;
+
+    if (files.length > remaining) {
+      alert(`Chỉ có thể thêm ${remaining} ảnh nữa (tối đa ${MAX_IMAGES}).`);
     }
-    update({ imageFile: file });
+
+    const validFiles = files.slice(0, remaining).filter((file) => {
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        alert(`${file.name}: Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP).`);
+        return false;
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        alert(`${file.name}: Ảnh tối đa 5MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      update({ imageFiles: [...formData.imageFiles, ...validFiles] });
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  function removeImage() {
-    update({ imageFile: undefined });
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  function removeImage(index: number) {
+    update({ imageFiles: formData.imageFiles.filter((_, i) => i !== index) });
   }
 
   const insertPlaceholder = useCallback((placeholder: string) => {
@@ -123,40 +144,50 @@ export function MessageComposerPanel({ formData, previewRecipient, onChange }: P
         </div>
       </div>
 
-      <label className="mt-4 block text-sm font-medium text-gray-700">Hình ảnh đính kèm</label>
+      <label className="mt-4 block text-sm font-medium text-gray-700">
+        Hình ảnh đính kèm ({formData.imageFiles.length}/{MAX_IMAGES})
+      </label>
       <div className="mt-1">
-        {formData.imageFile && imagePreviewUrl ? (
-          <div className="relative inline-block">
-            <img
-              src={imagePreviewUrl}
-              alt="Preview"
-              className="h-32 w-auto rounded-lg border border-gray-200 object-cover"
-            />
-            <button
-              type="button"
-              onClick={removeImage}
-              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs text-white shadow hover:bg-red-600"
-            >
-              x
-            </button>
-            <p className="mt-1 text-xs text-gray-500">{formData.imageFile.name}</p>
+        {formData.imageFiles.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {formData.imageFiles.map((file, index) => (
+              <div key={`${file.name}-${file.size}-${index}`} className="relative">
+                <img
+                  src={imagePreviewUrls[index]}
+                  alt={file.name}
+                  className="h-24 w-24 rounded-lg border border-gray-200 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white shadow hover:bg-red-600"
+                >
+                  x
+                </button>
+                <p className="mt-0.5 max-w-24 truncate text-xs text-gray-500">{file.name}</p>
+              </div>
+            ))}
           </div>
-        ) : (
+        )}
+        {formData.imageFiles.length < MAX_IMAGES && (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600"
+            className={`flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 ${formData.imageFiles.length > 0 ? 'mt-3' : ''}`}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            Chọn ảnh (tùy chọn, tối đa 5MB)
+            {formData.imageFiles.length === 0
+              ? `Chọn ảnh (tùy chọn, tối đa ${MAX_IMAGES} ảnh, mỗi ảnh 5MB)`
+              : 'Thêm ảnh'}
           </button>
         )}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp"
+          multiple
           className="hidden"
           onChange={handleImageSelect}
         />
@@ -164,8 +195,12 @@ export function MessageComposerPanel({ formData, previewRecipient, onChange }: P
 
       <div className="mt-4 rounded-lg bg-gray-50 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Preview</p>
-        {imagePreviewUrl && (
-          <img src={imagePreviewUrl} alt="Attached" className="mt-2 h-24 w-auto rounded-md object-cover" />
+        {imagePreviewUrls.length > 0 && (
+          <div className="mt-2 flex gap-2 overflow-x-auto">
+            {imagePreviewUrls.map((url, i) => (
+              <img key={i} src={url} alt="Attached" className="h-24 w-auto rounded-md object-cover" />
+            ))}
+          </div>
         )}
         <p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{renderPreview(formData.messageContent, previewRecipient)}</p>
       </div>

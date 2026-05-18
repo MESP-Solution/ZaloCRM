@@ -53,8 +53,8 @@ export class MessagingCampaign {
   @Enum({ items: () => ['stranger', 'friend'], default: 'stranger' })
   campaignType!: MessagingCampaignType;
 
-  @Property({ type: 'string', nullable: true })
-  imageFilePath?: string;
+  @Property({ type: 'json', default: '[]' })
+  imageFilePaths: string[] = [];
 
   @Property({ type: 'Date', nullable: true })
   scheduleAt?: Date;
