@@ -15,9 +15,7 @@ interface ScannedInfo {
 }
 
 function buildWsUrl(): string {
-  const apiUrl = appConfig.apiBaseUrl;
-  const base = apiUrl.replace(/\/api\/?$/, '').replace(/^http/, 'ws');
-  return `${base}/ws/zalo-qr`;
+  return `${appConfig.backendWsUrl}/ws/zalo-qr`;
 }
 
 export function ZaloQrLoginTab({ onSuccess }: Props) {
